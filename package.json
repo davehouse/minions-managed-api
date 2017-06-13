@@ -2,7 +2,7 @@
   "name": "minions-managed",
   "version": "0.0.1",
   "description": "collect and disseminate data about Windows TaskCluster instances",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
