@@ -6,6 +6,12 @@ var app        = express();
 var bodyParser = require('body-parser');
 var router     = express.Router();
 
+app.use(function(req, res, next) {
+  if(req.headers['x-forwarded-proto']==='http') {
+    return res.redirect(['https://', req.get('Host'), req.url].join(''));
+  }
+  next();
+});
 app.use(cors());
 app.options('*', cors());
 
