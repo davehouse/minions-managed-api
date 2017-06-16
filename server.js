@@ -1,9 +1,13 @@
 var port       = 3000;
+var cors       = require('cors');
 var express    = require('express');
 var mongoose   = require('mongoose');
 var app        = express();
 var bodyParser = require('body-parser');
 var router     = express.Router();
+
+app.use(cors());
+app.options('*', cors());
 
 var MinionSchema = new mongoose.Schema({
   _id: mongoose.Schema.ObjectId,
@@ -155,3 +159,4 @@ db.once('open', function() {
 app.use(router);
 app.listen(port);
 console.log('listening on port ' + port);
+
