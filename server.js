@@ -60,6 +60,14 @@ mongoose.connect('localhost', 'minions-managed');
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
+  router.get('/minions/:state/:workerType/:dataCenter', function(request, response){
+    Minion.find({ terminated: { $exists: (request.params.state === 'dead') }, workerType: request.params.workerType, dataCenter: request.params.dataCenter }, function(error, minions) {
+      if (error) {
+        return console.error(error);
+      }
+      response.json(minions);
+    });
+  });
   router.get('/minions/alive', function(request, response){
     Minion.find({ terminated: undefined }, function(error, minions) {
       if (error) {
