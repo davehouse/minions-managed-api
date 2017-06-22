@@ -6,6 +6,8 @@ var app        = express();
 var bodyParser = require('body-parser');
 var router     = express.Router();
 
+var maxEventAgeInDays = 7;
+
 app.use(function(req, res, next) {
   if(req.headers['x-forwarded-proto']==='http') {
     return res.redirect(['https://', req.get('Host'), req.url].join(''));
@@ -22,6 +24,7 @@ var MinionSchema = new mongoose.Schema({
   dataCenter: String,
   ipAddress: String,
   created: Date,
+  lastEvent: Date,
   restarts: [
     {
       time: Date,
@@ -61,7 +64,8 @@ var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
   router.get('/minions/:state/:workerType/:dataCenter', function(request, response){
-    Minion.find({ terminated: { $exists: (request.params.state === 'dead') }, workerType: request.params.workerType, dataCenter: request.params.dataCenter }, function(error, minions) {
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
+    Minion.find({ terminated: { $exists: (request.params.state === 'dead') }, lastEvent: { $gt: startDate }, workerType: request.params.workerType, dataCenter: request.params.dataCenter }, function(error, minions) {
       if (error) {
         return console.error(error);
       }
@@ -69,7 +73,8 @@ db.once('open', function() {
     });
   });
   router.get('/minions/alive', function(request, response){
-    Minion.find({ terminated: undefined }, function(error, minions) {
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
+    Minion.find({ terminated: { $exists: false }, lastEvent: { $gt: startDate } }, function(error, minions) {
       if (error) {
         return console.error(error);
       }
@@ -77,7 +82,8 @@ db.once('open', function() {
     });
   });
   router.get('/minions/dead', function(request, response){
-    Minion.find({ terminated: { $exists: true } }, function(error, minions) {
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
+    Minion.find({ terminated: { $exists: true }, lastEvent: { $gt: startDate } }, function(error, minions) {
       if (error) {
         return console.error(error);
       }
@@ -105,7 +111,8 @@ db.once('open', function() {
           workerType: fqdn[1],
           dataCenter: fqdn[2],
           ipAddress: event.source_ip,
-          created: new Date(event.received_at)
+          created: new Date(event.received_at),
+          lastEvent: new Date()
         }
         Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
           console.log('create: ' + instance._id);
@@ -124,7 +131,7 @@ db.once('open', function() {
                 id: event.message.split('#')[1],
                 started: new Date(event.received_at)
               }
-              Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, $push: { tasks: task } }, { upsert: true }, function(error, model) {
+              Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $push: { tasks: task } }, { upsert: true }, function(error, model) {
                 console.log(fqdn[0] + ', task: ' + task.id);
                 if (error) {
                   return console.error(error);
@@ -141,7 +148,7 @@ db.once('open', function() {
                 user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
                 comment: event.message.split('   Comment: ')[1]
               }
-              Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
+              Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
                 console.log(fqdn[0] + ', terminated: ' + shutdown.comment);
                 if (error) {
                   return console.error(error);
@@ -155,7 +162,7 @@ db.once('open', function() {
                 user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
                 comment: event.message.split('   Comment: ')[1]
               }
-              Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
+              Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
                 console.log(fqdn[0] + ', restarted: ' + shutdown.comment);
                 if (error) {
                   return console.error(error);
