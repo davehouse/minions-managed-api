@@ -63,6 +63,16 @@ mongoose.connect('localhost', 'minions-managed');
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
+  router.get('/minion/:state/count', function(request, response){
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
+    Minion.aggregate(
+      { terminated: { $exists: (request.params.state === 'dead') }, lastEvent: { $gt: startDate }, $group: { _id: { workerType: '$workerType', dataCenter: '$dataCenter' }, count: { $sum: 1 } } }, function(error, counts) {
+      if (error) {
+        return console.error(error);
+      }
+      response.json(counts);
+    });
+  });
   router.get('/minions/:state/:workerType/:dataCenter', function(request, response){
     var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
     Minion.find({ terminated: { $exists: (request.params.state === 'dead') }, lastEvent: { $gt: startDate }, workerType: request.params.workerType, dataCenter: request.params.dataCenter }, function(error, minions) {
