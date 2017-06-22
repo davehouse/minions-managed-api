@@ -66,12 +66,30 @@ db.once('open', function() {
   router.get('/minion/:state/count', function(request, response){
     var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
     Minion.aggregate(
-      { terminated: { $exists: (request.params.state === 'dead') }, lastEvent: { $gt: startDate }, $group: { _id: { workerType: '$workerType', dataCenter: '$dataCenter' }, count: { $sum: 1 } } }, function(error, counts) {
-      if (error) {
-        return console.error(error);
+      [
+        {
+          $match: {
+            terminated: { $exists: (request.params.state === 'dead') },
+            lastEvent: { $gt: startDate }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              workerType: "$workerType",
+              dataCenter: "$dataCenter"
+            },
+            count: { $sum: 1 }
+          }
+        }
+      ],
+      function(error, counts) {
+        if (error) {
+          return console.error(error);
+        }
+        response.json(counts);
       }
-      response.json(counts);
-    });
+    );
   });
   router.get('/minions/:state/:workerType/:dataCenter', function(request, response){
     var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
