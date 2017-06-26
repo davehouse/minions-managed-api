@@ -70,7 +70,7 @@ db.once('open', function() {
           [
             {
               $match: {
-                created: { $exists: true },
+                created: { $type: 9 },
                 lastEvent: { $exists: true }
               }
             },
