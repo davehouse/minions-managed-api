@@ -68,6 +68,7 @@ db.once('open', function() {
       [
         {
           $match: {
+            created: { $exists: true },
             lastEvent: { $exists: true }
           }
         },
