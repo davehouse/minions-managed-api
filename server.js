@@ -63,7 +63,38 @@ mongoose.connect('localhost', 'minions-managed');
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
-  router.get('/minion/stats', function(request, response){
+  router.get('/minion/:period/stats', function(request, response) {
+    var periodGroup = {
+      workerType: "$workerType",
+      dataCenter: "$dataCenter"
+    };
+    switch (request.params.period) {
+      case 'year':
+        periodGroup.year = { $year: "$year" };
+        break;
+      case 'month':
+        periodGroup.year = { $year: "$year" };
+        periodGroup.month = { $month: "$created" };
+        break;
+      case 'day':
+        periodGroup.year = { $year: "$year" };
+        periodGroup.month = { $month: "$created" };
+        periodGroup.day = { $dayOfMonth: "$created" };
+        break;
+      case 'hour':
+        periodGroup.year = { $year: "$year" };
+        periodGroup.month = { $month: "$created" };
+        periodGroup.day = { $dayOfMonth: "$created" };
+        periodGroup.hour = { $hour: "$created" };
+        break;
+      case 'minute':
+        periodGroup.year = { $year: "$year" };
+        periodGroup.month = { $month: "$created" };
+        periodGroup.day = { $dayOfMonth: "$created" };
+        periodGroup.hour = { $hour: "$created" };
+        periodGroup.minute = { $hour: "$minute" };
+        break;
+    }
     Minion.aggregate(
       [
         {
@@ -74,13 +105,7 @@ db.once('open', function() {
         },
         {
           $group: {
-            _id: {
-              workerType: "$workerType",
-              dataCenter: "$dataCenter",
-              year: { $year: "$created" },
-              month: { $month: "$created" },
-              day: { $dayOfMonth: "$created" }
-            },
+            _id: periodGroup,
             count: { $sum: 1 }
           }
         }
