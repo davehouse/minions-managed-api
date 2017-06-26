@@ -79,7 +79,7 @@ db.once('open', function() {
                 _id: {
                   workerType: "$workerType",
                   dataCenter: "$dataCenter",
-                  year: { $year: "$year" }
+                  year: { $year: "$created" }
                 },
                 count: { $sum: 1 }
               }
@@ -107,7 +107,7 @@ db.once('open', function() {
                 _id: {
                   workerType: "$workerType",
                   dataCenter: "$dataCenter",
-                  year: { $year: "$year" },
+                  year: { $year: "$created" },
                   month: { $month: "$created" }
                 },
                 count: { $sum: 1 }
@@ -136,7 +136,7 @@ db.once('open', function() {
                 _id: {
                   workerType: "$workerType",
                   dataCenter: "$dataCenter",
-                  year: { $year: "$year" },
+                  year: { $year: "$created" },
                   month: { $month: "$created" },
                   day: { $dayOfMonth: "$created" }
                 },
@@ -166,7 +166,7 @@ db.once('open', function() {
                 _id: {
                   workerType: "$workerType",
                   dataCenter: "$dataCenter",
-                  year: { $year: "$year" },
+                  year: { $year: "$created" },
                   month: { $month: "$created" },
                   day: { $dayOfMonth: "$created" },
                   hour: { $hour: "$created" }
@@ -197,7 +197,7 @@ db.once('open', function() {
                 _id: {
                   workerType: "$workerType",
                   dataCenter: "$dataCenter",
-                  year: { $year: "$year" },
+                  year: { $year: "$created" },
                   month: { $month: "$created" },
                   day: { $dayOfMonth: "$created" },
                   hour: { $hour: "$created" },
