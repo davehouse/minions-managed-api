@@ -59,42 +59,60 @@ app.use(bodyParser.urlencoded({
   type: 'application/x-www-form-urlencoded'
 }));
 
+function GetGroupId(period) {
+  switch (period) {
+    case 'year':
+      return {
+        workerType: "$workerType",
+        dataCenter: "$dataCenter",
+        year: { $year: "$year" }
+      };
+    case 'month':
+      return {
+        workerType: "$workerType",
+        dataCenter: "$dataCenter",
+        year: { $year: "$year" },
+        month: { $month: "$created" }
+      };
+    case 'day':
+      return {
+        workerType: "$workerType",
+        dataCenter: "$dataCenter",
+        year: { $year: "$year" },
+        month: { $month: "$created" },
+        day: { $dayOfMonth: "$created" }
+      };
+    case 'hour':
+      return {
+        workerType: "$workerType",
+        dataCenter: "$dataCenter",
+        year: { $year: "$year" },
+        month: { $month: "$created" },
+        day: { $dayOfMonth: "$created" },
+        hour: { $hour: "$created" }
+      };
+    case 'minute':
+      return {
+        workerType: "$workerType",
+        dataCenter: "$dataCenter",
+        year: { $year: "$year" },
+        month: { $month: "$created" },
+        day: { $dayOfMonth: "$created" },
+        hour: { $hour: "$created" },
+        minute: { $minute: "$created" }
+      };
+  }
+  return {
+    workerType: "$workerType",
+    dataCenter: "$dataCenter"
+  };
+}
+
 mongoose.connect('localhost', 'minions-managed');
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
   router.get('/minion/:period/stats', function(request, response) {
-    var periodGroup = {
-      workerType: "$workerType",
-      dataCenter: "$dataCenter"
-    };
-    switch (request.params.period) {
-      case 'year':
-        periodGroup.year = { $year: "$year" };
-        break;
-      case 'month':
-        periodGroup.year = { $year: "$year" };
-        periodGroup.month = { $month: "$created" };
-        break;
-      case 'day':
-        periodGroup.year = { $year: "$year" };
-        periodGroup.month = { $month: "$created" };
-        periodGroup.day = { $dayOfMonth: "$created" };
-        break;
-      case 'hour':
-        periodGroup.year = { $year: "$year" };
-        periodGroup.month = { $month: "$created" };
-        periodGroup.day = { $dayOfMonth: "$created" };
-        periodGroup.hour = { $hour: "$created" };
-        break;
-      case 'minute':
-        periodGroup.year = { $year: "$year" };
-        periodGroup.month = { $month: "$created" };
-        periodGroup.day = { $dayOfMonth: "$created" };
-        periodGroup.hour = { $hour: "$created" };
-        periodGroup.minute = { $hour: "$minute" };
-        break;
-    }
     Minion.aggregate(
       [
         {
@@ -105,7 +123,7 @@ db.once('open', function() {
         },
         {
           $group: {
-            _id: periodGroup,
+            _id: GetGroupId(request.params.period),
             count: { $sum: 1 }
           }
         }
