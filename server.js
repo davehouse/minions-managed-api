@@ -76,9 +76,9 @@ db.once('open', function() {
             _id: {
               workerType: "$workerType",
               dataCenter: "$dataCenter",
-              year: { $year: "$lastEvent" },
-              month: { $month: "$lastEvent" },
-              day: { $dayOfMonth: "$lastEvent" }
+              year: { $year: "$created" },
+              month: { $month: "$created" },
+              day: { $dayOfMonth: "$created" }
             },
             count: { $sum: 1 }
           }
