@@ -59,55 +59,6 @@ app.use(bodyParser.urlencoded({
   type: 'application/x-www-form-urlencoded'
 }));
 
-function GetGroupId(period) {
-  switch (period) {
-    case 'year':
-      return {
-        workerType: "$workerType",
-        dataCenter: "$dataCenter",
-        year: { $year: "$year" }
-      };
-    case 'month':
-      return {
-        workerType: "$workerType",
-        dataCenter: "$dataCenter",
-        year: { $year: "$year" },
-        month: { $month: "$created" }
-      };
-    case 'day':
-      return {
-        workerType: "$workerType",
-        dataCenter: "$dataCenter",
-        year: { $year: "$year" },
-        month: { $month: "$created" },
-        day: { $dayOfMonth: "$created" }
-      };
-    case 'hour':
-      return {
-        workerType: "$workerType",
-        dataCenter: "$dataCenter",
-        year: { $year: "$year" },
-        month: { $month: "$created" },
-        day: { $dayOfMonth: "$created" },
-        hour: { $hour: "$created" }
-      };
-    case 'minute':
-      return {
-        workerType: "$workerType",
-        dataCenter: "$dataCenter",
-        year: { $year: "$year" },
-        month: { $month: "$created" },
-        day: { $dayOfMonth: "$created" },
-        hour: { $hour: "$created" },
-        minute: { $minute: "$created" }
-      };
-  }
-  return {
-    workerType: "$workerType",
-    dataCenter: "$dataCenter"
-  };
-}
-
 mongoose.connect('localhost', 'minions-managed');
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
@@ -123,7 +74,40 @@ db.once('open', function() {
         },
         {
           $group: {
-            _id: GetGroupId(request.params.period),
+            _id: (request.params.period === 'year') ? {
+              workerType: "$workerType",
+              dataCenter: "$dataCenter",
+              year: { $year: "$year" }
+            } : (request.params.period === 'month') ? {
+              workerType: "$workerType",
+              dataCenter: "$dataCenter",
+              year: { $year: "$year" },
+              month: { $month: "$created" }
+            } : (request.params.period === 'day') ? {
+              workerType: "$workerType",
+              dataCenter: "$dataCenter",
+              year: { $year: "$year" },
+              month: { $month: "$created" },
+              day: { $dayOfMonth: "$created" }
+            } : (request.params.period === 'hour') ? {
+              workerType: "$workerType",
+              dataCenter: "$dataCenter",
+              year: { $year: "$year" },
+              month: { $month: "$created" },
+              day: { $dayOfMonth: "$created" },
+              hour: { $hour: "$created" }
+            } : (request.params.period === 'minute') ? {
+              workerType: "$workerType",
+              dataCenter: "$dataCenter",
+              year: { $year: "$year" },
+              month: { $month: "$created" },
+              day: { $dayOfMonth: "$created" },
+              hour: { $hour: "$created" },
+              minute: { $minute: "$created" }
+            } : {
+              workerType: "$workerType",
+              dataCenter: "$dataCenter"
+            },
             count: { $sum: 1 }
           }
         }
