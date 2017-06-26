@@ -64,61 +64,185 @@ var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
   router.get('/minion/:period/stats', function(request, response) {
-    Minion.aggregate(
-      [
-        {
-          $match: {
-            created: { $exists: true },
-            lastEvent: { $exists: true }
-          }
-        },
-        {
-          $group: {
-            _id: (request.params.period === 'year') ? {
-              workerType: "$workerType",
-              dataCenter: "$dataCenter",
-              year: { $year: "$year" }
-            } : (request.params.period === 'month') ? {
-              workerType: "$workerType",
-              dataCenter: "$dataCenter",
-              year: { $year: "$year" },
-              month: { $month: "$created" }
-            } : (request.params.period === 'day') ? {
-              workerType: "$workerType",
-              dataCenter: "$dataCenter",
-              year: { $year: "$year" },
-              month: { $month: "$created" },
-              day: { $dayOfMonth: "$created" }
-            } : (request.params.period === 'hour') ? {
-              workerType: "$workerType",
-              dataCenter: "$dataCenter",
-              year: { $year: "$year" },
-              month: { $month: "$created" },
-              day: { $dayOfMonth: "$created" },
-              hour: { $hour: "$created" }
-            } : (request.params.period === 'minute') ? {
-              workerType: "$workerType",
-              dataCenter: "$dataCenter",
-              year: { $year: "$year" },
-              month: { $month: "$created" },
-              day: { $dayOfMonth: "$created" },
-              hour: { $hour: "$created" },
-              minute: { $minute: "$created" }
-            } : {
-              workerType: "$workerType",
-              dataCenter: "$dataCenter"
+    switch (request.params.period) {
+      case 'year':
+        Minion.aggregate(
+          [
+            {
+              $match: {
+                created: { $exists: true },
+                lastEvent: { $exists: true }
+              }
             },
-            count: { $sum: 1 }
+            {
+              $group: {
+                _id: {
+                  workerType: "$workerType",
+                  dataCenter: "$dataCenter",
+                  year: { $year: "$year" }
+                },
+                count: { $sum: 1 }
+              }
+            }
+          ],
+          function(error, counts) {
+            if (error) {
+              return console.error(error);
+            }
+            response.json(counts);
           }
-        }
-      ],
-      function(error, counts) {
-        if (error) {
-          return console.error(error);
-        }
-        response.json(counts);
-      }
-    );
+        );
+        break;
+      case 'month':
+        Minion.aggregate(
+          [
+            {
+              $match: {
+                created: { $exists: true },
+                lastEvent: { $exists: true }
+              }
+            },
+            {
+              $group: {
+                _id: {
+                  workerType: "$workerType",
+                  dataCenter: "$dataCenter",
+                  year: { $year: "$year" },
+                  month: { $month: "$created" }
+                },
+                count: { $sum: 1 }
+              }
+            }
+          ],
+          function(error, counts) {
+            if (error) {
+              return console.error(error);
+            }
+            response.json(counts);
+          }
+        );
+        break;
+      case 'day':
+        Minion.aggregate(
+          [
+            {
+              $match: {
+                created: { $exists: true },
+                lastEvent: { $exists: true }
+              }
+            },
+            {
+              $group: {
+                _id: {
+                  workerType: "$workerType",
+                  dataCenter: "$dataCenter",
+                  year: { $year: "$year" },
+                  month: { $month: "$created" },
+                  day: { $dayOfMonth: "$created" }
+                },
+                count: { $sum: 1 }
+              }
+            }
+          ],
+          function(error, counts) {
+            if (error) {
+              return console.error(error);
+            }
+            response.json(counts);
+          }
+        );
+        break;
+      case 'hour':
+        Minion.aggregate(
+          [
+            {
+              $match: {
+                created: { $exists: true },
+                lastEvent: { $exists: true }
+              }
+            },
+            {
+              $group: {
+                _id: {
+                  workerType: "$workerType",
+                  dataCenter: "$dataCenter",
+                  year: { $year: "$year" },
+                  month: { $month: "$created" },
+                  day: { $dayOfMonth: "$created" },
+                  hour: { $hour: "$created" }
+                },
+                count: { $sum: 1 }
+              }
+            }
+          ],
+          function(error, counts) {
+            if (error) {
+              return console.error(error);
+            }
+            response.json(counts);
+          }
+        );
+        break;
+      case 'minute':
+        Minion.aggregate(
+          [
+            {
+              $match: {
+                created: { $exists: true },
+                lastEvent: { $exists: true }
+              }
+            },
+            {
+              $group: {
+                _id: {
+                  workerType: "$workerType",
+                  dataCenter: "$dataCenter",
+                  year: { $year: "$year" },
+                  month: { $month: "$created" },
+                  day: { $dayOfMonth: "$created" },
+                  hour: { $hour: "$created" },
+                  minute: { $minute: "$created" }
+                },
+                count: { $sum: 1 }
+              }
+            }
+          ],
+          function(error, counts) {
+            if (error) {
+              return console.error(error);
+            }
+            response.json(counts);
+          }
+        );
+        break;
+      default:
+        Minion.aggregate(
+          [
+            {
+              $match: {
+                created: { $exists: true },
+                lastEvent: { $exists: true }
+              }
+            },
+            {
+              $group: {
+                _id: {
+                  workerType: "$workerType",
+                  dataCenter: "$dataCenter"
+                },
+                count: { $sum: 1 }
+              }
+            }
+          ],
+          function(error, counts) {
+            if (error) {
+              return console.error(error);
+            }
+            response.json(counts);
+          }
+        );
+        break;
+    }
   });
   router.get('/minion/:state/count', function(request, response){
     var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
