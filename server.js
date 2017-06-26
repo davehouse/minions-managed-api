@@ -64,9 +64,13 @@ var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
   router.get('/minion/stats', function(request, response){
-    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
     Minion.aggregate(
       [
+        {
+          $match: {
+            lastEvent: { $exists: true }
+          }
+        },
         {
           $group: {
             _id: {
