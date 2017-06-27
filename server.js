@@ -63,6 +63,79 @@ mongoose.connect('localhost', 'minions-managed');
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
+  router.get('/minion/:workerType/:period/stats', function(request, response) {
+    var group = {};
+    switch (request.params.period) {
+      case 'year':
+        group = {
+          dataCenter: "$dataCenter",
+          year: { $year: "$created" }
+        };
+        break;
+      case 'month':
+        group = {
+          dataCenter: "$dataCenter",
+          year: { $year: "$created" },
+          month: { $month: "$created" }
+        };
+        break;
+      case 'day':
+        group = {
+          dataCenter: "$dataCenter",
+          year: { $year: "$created" },
+          month: { $month: "$created" },
+          day: { $dayOfMonth: "$created" }
+        };
+        break;
+      case 'hour':
+        group = {
+          dataCenter: "$dataCenter",
+          year: { $year: "$created" },
+          month: { $month: "$created" },
+          day: { $dayOfMonth: "$created" },
+          hour: { $hour: "$created" }
+        };
+        break;
+      case 'minute':
+        group = {
+          dataCenter: "$dataCenter",
+          year: { $year: "$created" },
+          month: { $month: "$created" },
+          day: { $dayOfMonth: "$created" },
+          hour: { $hour: "$created" },
+          minute: { $minute: "$created" }
+        };
+        break;
+      default:
+        group = {
+          dataCenter: "$dataCenter"
+        };
+        break;
+    }
+    Minion.aggregate(
+      [
+        {
+          $match: {
+            workerType: request.params.workerType,
+            created: { $type: 9 },
+            lastEvent: { $exists: true }
+          }
+        },
+        {
+          $group: {
+            _id: group,
+            count: { $sum: 1 }
+          }
+        }
+      ],
+      function(error, counts) {
+        if (error) {
+          return console.error(error);
+        }
+        response.json(counts);
+      }
+    );
+  });
   router.get('/minion/:period/stats', function(request, response) {
     var group = {};
     switch (request.params.period) {
