@@ -347,6 +347,23 @@ db.once('open', function() {
               });
             }
             break;
+          case 'haltonidle':
+            if (event.message.match(/termination notice received/i)) {
+              var shutdown = {
+                time: new Date(event.received_at),
+                user: 'amazon',
+                comment: 'termination notice received'
+              }
+              Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
+                console.log(fqdn[0] + ', terminated: ' + shutdown.comment);
+                if (error) {
+                  return console.error(error);
+                } else {
+                  console.log(model);
+                }
+              });
+            }
+            break;
         }
       }
     });
