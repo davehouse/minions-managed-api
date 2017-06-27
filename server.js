@@ -78,7 +78,6 @@ db.once('open', function() {
               $group: {
                 _id: {
                   workerType: "$workerType",
-                  dataCenter: "$dataCenter",
                   year: { $year: "$created" }
                 },
                 count: { $sum: 1 }
@@ -106,7 +105,6 @@ db.once('open', function() {
               $group: {
                 _id: {
                   workerType: "$workerType",
-                  dataCenter: "$dataCenter",
                   year: { $year: "$created" },
                   month: { $month: "$created" }
                 },
@@ -135,7 +133,6 @@ db.once('open', function() {
               $group: {
                 _id: {
                   workerType: "$workerType",
-                  dataCenter: "$dataCenter",
                   year: { $year: "$created" },
                   month: { $month: "$created" },
                   day: { $dayOfMonth: "$created" }
@@ -165,7 +162,6 @@ db.once('open', function() {
               $group: {
                 _id: {
                   workerType: "$workerType",
-                  dataCenter: "$dataCenter",
                   year: { $year: "$created" },
                   month: { $month: "$created" },
                   day: { $dayOfMonth: "$created" },
@@ -196,7 +192,6 @@ db.once('open', function() {
               $group: {
                 _id: {
                   workerType: "$workerType",
-                  dataCenter: "$dataCenter",
                   year: { $year: "$created" },
                   month: { $month: "$created" },
                   day: { $dayOfMonth: "$created" },
@@ -227,8 +222,7 @@ db.once('open', function() {
             {
               $group: {
                 _id: {
-                  workerType: "$workerType",
-                  dataCenter: "$dataCenter"
+                  workerType: "$workerType"
                 },
                 count: { $sum: 1 }
               }
