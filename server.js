@@ -23,6 +23,7 @@ var MinionSchema = new mongoose.Schema({
   workerType: String,
   dataCenter: String,
   ipAddress: String,
+  instanceType: String,
   created: Date,
   lastEvent: Date,
   restarts: [
@@ -276,95 +277,113 @@ db.once('open', function() {
   router.post('/events', function(request, response) {
     JSON.parse(request.body.payload).events.forEach(function(event) {
       var fqdn = event.hostname.split('.');
-      if (event.program.match(/OpenCloudConfig/i) && event.message.match(/host renamed from/i)) {
-        // at the time this message is created, the host still has its parents name.
-        // the correct name is extracted from the message
-        var instanceId = event.message.split(' to ')[1].trim().slice(0, -1)
-        var id = mongoose.Types.ObjectId('0000000' + instanceId.slice(2));
-        var instance = {
-          instanceId: instanceId,
-          workerType: fqdn[1],
-          dataCenter: fqdn[2],
-          ipAddress: event.source_ip,
-          created: new Date(event.received_at),
-          lastEvent: new Date()
-        }
-        Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
-          console.log('create: ' + instance._id);
-          if (error) {
-            return console.error(error);
-          } else {
-            console.log(model);
+      var id = mongoose.Types.ObjectId('0000000' + fqdn[0].slice(2));
+      switch (event.program.toLowerCase()) {
+        case 'generic-worker':
+          if (event.message.match(/Running task https/i)) {
+            var task = {
+              id: event.message.split('#')[1],
+              started: new Date(event.received_at)
+            }
+            Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $push: { tasks: task } }, { upsert: true }, function(error, model) {
+              console.log(fqdn[0] + ', task: ' + task.id);
+              if (error) {
+                return console.error(error);
+              } else {
+                console.log(model);
+              }
+            });
           }
-        });
-      } else {
-        var id = mongoose.Types.ObjectId('0000000' + fqdn[0].slice(2));
-        switch (event.program.toLowerCase()) {
-          case 'generic-worker':
-            if (event.message.match(/Running task https/i)) {
-              var task = {
-                id: event.message.split('#')[1],
-                started: new Date(event.received_at)
-              }
-              Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $push: { tasks: task } }, { upsert: true }, function(error, model) {
-                console.log(fqdn[0] + ', task: ' + task.id);
-                if (error) {
-                  return console.error(error);
-                } else {
-                  console.log(model);
-                }
-              });
+          break;
+        case 'user32':
+          if (event.message.match(/has initiated the shutdown of computer/i)) {
+            var shutdown = {
+              time: new Date(event.received_at),
+              user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
+              comment: event.message.split('   Comment: ')[1]
             }
-            break;
-          case 'user32':
-            if (event.message.match(/has initiated the shutdown of computer/i)) {
-              var shutdown = {
-                time: new Date(event.received_at),
-                user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
-                comment: event.message.split('   Comment: ')[1]
+            Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
+              console.log(fqdn[0] + ', terminated: ' + shutdown.comment);
+              if (error) {
+                return console.error(error);
+              } else {
+                console.log(model);
               }
-              Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
-                console.log(fqdn[0] + ', terminated: ' + shutdown.comment);
-                if (error) {
-                  return console.error(error);
-                } else {
-                  console.log(model);
-                }
-              });
-            } else if (event.message.match(/has initiated the restart of computer/i)) {
-              var shutdown = {
-                time: new Date(event.received_at),
-                user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
-                comment: event.message.split('   Comment: ')[1]
-              }
-              Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
-                console.log(fqdn[0] + ', restarted: ' + shutdown.comment);
-                if (error) {
-                  return console.error(error);
-                } else {
-                  console.log(model);
-                }
-              });
+            });
+          } else if (event.message.match(/has initiated the restart of computer/i)) {
+            var shutdown = {
+              time: new Date(event.received_at),
+              user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
+              comment: event.message.split('   Comment: ')[1]
             }
-            break;
-          case 'haltonidle':
-            if (event.message.match(/termination notice received/i)) {
-              var shutdown = {
-                time: new Date(event.received_at),
-                user: 'amazon',
-                comment: 'termination notice received'
+            Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
+              console.log(fqdn[0] + ', restarted: ' + shutdown.comment);
+              if (error) {
+                return console.error(error);
+              } else {
+                console.log(model);
               }
-              Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
-                console.log(fqdn[0] + ', terminated: ' + shutdown.comment);
-                if (error) {
-                  return console.error(error);
-                } else {
-                  console.log(model);
-                }
-              });
+            });
+          }
+          break;
+        case 'haltonidle':
+          if (event.message.match(/termination notice received/i)) {
+            var shutdown = {
+              time: new Date(event.received_at),
+              user: 'amazon',
+              comment: 'termination notice received'
             }
-            break;
-        }
+            Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
+              console.log(fqdn[0] + ', terminated: ' + shutdown.comment);
+              if (error) {
+                return console.error(error);
+              } else {
+                console.log(model);
+              }
+            });
+          }
+          break;
+        case 'opencloudconfig':
+          if (event.message.match(/instanceType/i)) {
+            var instance = {
+              instanceId: fqdn[0],
+              workerType: fqdn[1],
+              dataCenter: fqdn[2],
+              ipAddress: event.source_ip,
+              instanceType: event.message.match(/instanceType: (.*)\./i)[1],
+              lastEvent: new Date()
+            }
+            Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
+              console.log('update: ' + instance._id);
+              if (error) {
+                return console.error(error);
+              } else {
+                console.log(model);
+              }
+            });
+          } else if (event.message.match(/host renamed from/i)) {
+            // at the time this message is created, the host still has its parents name.
+            // the correct name is extracted from the message
+            var instanceId = event.message.split(' to ')[1].trim().slice(0, -1)
+            id = mongoose.Types.ObjectId('0000000' + instanceId.slice(2));
+            var instance = {
+              instanceId: instanceId,
+              workerType: fqdn[1],
+              dataCenter: fqdn[2],
+              ipAddress: event.source_ip,
+              created: new Date(event.received_at),
+              lastEvent: new Date()
+            }
+            Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
+              console.log('create: ' + instance._id);
+              if (error) {
+                return console.error(error);
+              } else {
+                console.log(model);
+              }
+            });
+          }
+          break;
       }
     });
   });
