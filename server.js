@@ -8,7 +8,7 @@ var router     = express.Router();
 
 var maxEventAgeInDays = {
   alive: 7,
-  dead: 2,
+  dead: 1,
   stats: 7
 };
 
