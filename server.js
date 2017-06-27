@@ -6,7 +6,11 @@ var app        = express();
 var bodyParser = require('body-parser');
 var router     = express.Router();
 
-var maxEventAgeInDays = 7;
+var maxEventAgeInDays = {
+  alive: 7,
+  dead: 2,
+  stats: 7
+};
 
 app.use(function(req, res, next) {
   if(req.headers['x-forwarded-proto']==='http') {
@@ -65,7 +69,7 @@ var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
   router.get('/minion/:workerType/:period/stats', function(request, response) {
-    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays.stats);return d;})(new Date())).toDateString());
     var group = {};
     switch (request.params.period) {
       case 'year':
@@ -139,7 +143,7 @@ db.once('open', function() {
     );
   });
   router.get('/minion/:period/stats', function(request, response) {
-    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays.stats);return d;})(new Date())).toDateString());
     var group = {};
     switch (request.params.period) {
       case 'year':
@@ -212,7 +216,7 @@ db.once('open', function() {
     );
   });
   router.get('/minion/:state/count', function(request, response){
-    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays[request.params.state]);return d;})(new Date())).toDateString());
     Minion.aggregate(
       [
         {
@@ -240,7 +244,7 @@ db.once('open', function() {
     );
   });
   router.get('/minions/:state/:workerType/:dataCenter', function(request, response){
-    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays[request.params.state]);return d;})(new Date())).toDateString());
     Minion.find({ terminated: { $exists: (request.params.state === 'dead') }, lastEvent: { $gt: startDate }, workerType: request.params.workerType, dataCenter: request.params.dataCenter }, function(error, minions) {
       if (error) {
         return console.error(error);
@@ -249,7 +253,7 @@ db.once('open', function() {
     });
   });
   router.get('/minions/alive', function(request, response){
-    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays.alive);return d;})(new Date())).toDateString());
     Minion.find({ terminated: { $exists: false }, lastEvent: { $gt: startDate } }, function(error, minions) {
       if (error) {
         return console.error(error);
@@ -258,7 +262,7 @@ db.once('open', function() {
     });
   });
   router.get('/minions/dead', function(request, response){
-    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays.dead);return d;})(new Date())).toDateString());
     Minion.find({ terminated: { $exists: true }, lastEvent: { $gt: startDate } }, function(error, minions) {
       if (error) {
         return console.error(error);
