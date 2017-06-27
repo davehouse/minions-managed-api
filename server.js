@@ -64,6 +64,7 @@ var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
   router.get('/minion/:workerType/:period/stats', function(request, response) {
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
     var group = {};
     switch (request.params.period) {
       case 'year':
@@ -118,7 +119,7 @@ db.once('open', function() {
           $match: {
             workerType: request.params.workerType,
             created: { $type: 9 },
-            lastEvent: { $exists: true }
+            lastEvent: { $gt: startDate }
           }
         },
         {
@@ -137,6 +138,7 @@ db.once('open', function() {
     );
   });
   router.get('/minion/:period/stats', function(request, response) {
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays);return d;})(new Date())).toDateString());
     var group = {};
     switch (request.params.period) {
       case 'year':
@@ -190,7 +192,7 @@ db.once('open', function() {
         {
           $match: {
             created: { $type: 9 },
-            lastEvent: { $exists: true }
+            lastEvent: { $gt: startDate }
           }
         },
         {
