@@ -222,6 +222,11 @@ db.once('open', function() {
     missingAssumedDead.setHours(missingAssumedDead.getHours() - maxQuietHoursBeforeAssumedDead);
     var match = (request.params.state === 'dead') ? {
       $or: [ { terminated: { $exists: true } }, { lastEvent: { $lt: missingAssumedDead } } ],
+      tasks: { $exists: true },
+      lastEvent: { $gt: startDate }
+    } : (request.params.state === 'idle') ? {
+      $or: [ { terminated: { $exists: true } }, { lastEvent: { $lt: missingAssumedDead } } ],
+      tasks: { $exists: false },
       lastEvent: { $gt: startDate }
     } : {
       terminated: { $exists: false },
@@ -256,6 +261,13 @@ db.once('open', function() {
     missingAssumedDead.setHours(missingAssumedDead.getHours() - maxQuietHoursBeforeAssumedDead);
     var match = (request.params.state === 'dead') ? {
       $or: [ { terminated: { $exists: true } }, { lastEvent: { $lt: missingAssumedDead } } ],
+      tasks: { $exists: true },
+      lastEvent: { $gt: startDate },
+      workerType: request.params.workerType,
+      dataCenter: request.params.dataCenter
+    } : (request.params.state === 'idle') ? {
+      $or: [ { terminated: { $exists: true } }, { lastEvent: { $lt: missingAssumedDead } } ],
+      tasks: { $exists: false },
       lastEvent: { $gt: startDate },
       workerType: request.params.workerType,
       dataCenter: request.params.dataCenter
