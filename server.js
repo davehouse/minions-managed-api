@@ -225,7 +225,7 @@ db.once('open', function() {
       tasks: { $exists: true },
       lastEvent: { $gt: startDate }
     } : (request.params.state === 'idle') ? {
-      lastEvent: { $exists: true },
+      lastEvent: { $type: 9 },
       $or: [ { terminated: { $exists: true } }, { lastEvent: { $lt: missingAssumedDead } } ],
       tasks: { $exists: false },
       lastEvent: { $gt: startDate }
@@ -267,7 +267,7 @@ db.once('open', function() {
       workerType: request.params.workerType,
       dataCenter: request.params.dataCenter
     } : (request.params.state === 'idle') ? {
-      lastEvent: { $exists: true },
+      lastEvent: { $type: 9 },
       $or: [ { terminated: { $exists: true } }, { lastEvent: { $lt: missingAssumedDead } } ],
       tasks: { $exists: false },
       lastEvent: { $gt: startDate },
