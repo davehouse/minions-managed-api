@@ -11,10 +11,11 @@ var maxEventAgeInDays = {
   dead: 1,
   stats: 7
 };
+var maxQuietHoursBeforeAssumedDead = 3;
 
-app.use(function(req, res, next) {
-  if(req.headers['x-forwarded-proto']==='http') {
-    return res.redirect(['https://', req.get('Host'), req.url].join(''));
+app.use(function(request, response, next) {
+  if(request.headers['x-forwarded-proto']==='http') {
+    return response.redirect(['https://', request.get('Host'), request.url].join(''));
   }
   next();
 });
@@ -217,13 +218,19 @@ db.once('open', function() {
   });
   router.get('/minion/:state/count', function(request, response){
     var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays[request.params.state]);return d;})(new Date())).toDateString());
+    var missingAssumedDead = new Date();
+    missingAssumedDead.setHours(missingAssumedDead.getHours() - maxQuietHoursBeforeAssumedDead);
+    var match = (request.params.state === 'dead') ? {
+      $or: [ { terminated: { $exists: true } }, { lastEvent: { $lt: missingAssumedDead } } ],
+      lastEvent: { $gt: startDate }
+    } : {
+      terminated: { $exists: false },
+      lastEvent: { $gt: missingAssumedDead }
+    };
     Minion.aggregate(
       [
         {
-          $match: {
-            terminated: { $exists: (request.params.state === 'dead') },
-            lastEvent: { $gt: startDate }
-          }
+          $match: match
         },
         {
           $group: {
@@ -245,30 +252,28 @@ db.once('open', function() {
   });
   router.get('/minions/:state/:workerType/:dataCenter', function(request, response){
     var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays[request.params.state]);return d;})(new Date())).toDateString());
-    Minion.find({ terminated: { $exists: (request.params.state === 'dead') }, lastEvent: { $gt: startDate }, workerType: request.params.workerType, dataCenter: request.params.dataCenter }, function(error, minions) {
-      if (error) {
-        return console.error(error);
+    var missingAssumedDead = new Date();
+    missingAssumedDead.setHours(missingAssumedDead.getHours() - maxQuietHoursBeforeAssumedDead);
+    var match = (request.params.state === 'dead') ? {
+      $or: [ { terminated: { $exists: true } }, { lastEvent: { $lt: missingAssumedDead } } ],
+      lastEvent: { $gt: startDate },
+      workerType: request.params.workerType,
+      dataCenter: request.params.dataCenter
+    } : {
+      terminated: { $exists: false },
+      lastEvent: { $gt: missingAssumedDead },
+      workerType: request.params.workerType,
+      dataCenter: request.params.dataCenter
+    };
+    Minion.find(
+      match,
+      function(error, minions) {
+        if (error) {
+          return console.error(error);
+        }
+        response.json(minions);
       }
-      response.json(minions);
-    });
-  });
-  router.get('/minions/alive', function(request, response){
-    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays.alive);return d;})(new Date())).toDateString());
-    Minion.find({ terminated: { $exists: false }, lastEvent: { $gt: startDate } }, function(error, minions) {
-      if (error) {
-        return console.error(error);
-      }
-      response.json(minions);
-    });
-  });
-  router.get('/minions/dead', function(request, response){
-    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays.dead);return d;})(new Date())).toDateString());
-    Minion.find({ terminated: { $exists: true }, lastEvent: { $gt: startDate } }, function(error, minions) {
-      if (error) {
-        return console.error(error);
-      }
-      response.json(minions);
-    });
+    );
   });
   router.get('/minion/:id', function(request, response){
     Minion.findById(request.params.id, function(error, minion) {
