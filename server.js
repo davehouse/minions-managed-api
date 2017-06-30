@@ -24,6 +24,11 @@ app.options('*', cors());
 
 var MinionSchema = new mongoose.Schema({
   _id: mongoose.Schema.ObjectId,
+  spotRequest: {
+    id: String,
+    created: Date,
+    fulfilled: Date
+  },
   instanceId: String,
   workerType: String,
   dataCenter: String,
@@ -361,7 +366,7 @@ db.once('open', function() {
               ipAddress: event.source_ip,
               instanceType: event.message.match(/instanceType: (.*)\./i)[1],
               lastEvent: new Date()
-            }
+            };
             Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
               console.log('update: ' + instance._id);
               if (error) {
@@ -373,7 +378,7 @@ db.once('open', function() {
           } else if (event.message.match(/host renamed from/i)) {
             // at the time this message is created, the host still has its parents name.
             // the correct name is extracted from the message
-            var instanceId = event.message.split(' to ')[1].trim().slice(0, -1)
+            var instanceId = event.message.split(' to ')[1].trim().slice(0, -1);
             id = mongoose.Types.ObjectId('0000000' + instanceId.slice(2));
             var instance = {
               instanceId: instanceId,
@@ -382,7 +387,7 @@ db.once('open', function() {
               ipAddress: event.source_ip,
               created: new Date(event.received_at),
               lastEvent: new Date()
-            }
+            };
             Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
               console.log('create: ' + instance._id);
               if (error) {
@@ -392,6 +397,32 @@ db.once('open', function() {
               }
             });
           }
+          break;
+        case 'app/web.1':
+          var instanceId = event.message.match(/id=(.*),/i)[1];
+          id = mongoose.Types.ObjectId('0000000' + instanceId.slice(2));
+          var spotRequest = (event.message.match(/state=running/i)) ? {
+            id: event.message.match(/srid=(.*)\)/i)[1],
+            fulfilled: new Date(event.received_at)
+          } : {
+            id: event.message.match(/srid=(.*)\)/i)[1],
+            created: new Date(event.received_at)
+          };
+          var instance = {
+            spotRequest: spotRequest,
+            instanceId: instanceId,
+            workerType: event.message.match(/workerType=(.*),/i)[1],
+            instanceType: event.message.match(/instanceType=(.*),/i)[1],
+            lastEvent: new Date()
+          };
+          Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
+            console.log('update: ' + instance._id);
+            if (error) {
+              return console.error(error);
+            } else {
+              console.log(model);
+            }
+          });
           break;
       }
     });
