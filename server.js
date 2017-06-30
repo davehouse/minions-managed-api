@@ -407,7 +407,7 @@ db.once('open', function() {
             'spotRequest.fulfilled': new Date(event.received_at),
             instanceId: instanceId,
             workerType: event.message.match(/workerType=([^,]*)/i)[1],
-            dataCenter: region.slice(0, 2) + region.slice(3, 1) + region.slice(-1),
+            dataCenter: region.slice(0, 2) + region.slice(3, 4) + region.slice(-1),
             instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
             lastEvent: new Date()
           } : {
@@ -415,7 +415,7 @@ db.once('open', function() {
             'spotRequest.created': new Date(event.received_at),
             instanceId: instanceId,
             workerType: event.message.match(/workerType=([^,]*)/i)[1],
-            dataCenter: region.slice(0, 2) + region.slice(3, 1) + region.slice(-1),
+            dataCenter: region.slice(0, 2) + region.slice(3, 4) + region.slice(-1),
             instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
             lastEvent: new Date()
           };
