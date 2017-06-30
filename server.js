@@ -46,7 +46,9 @@ var MinionSchema = new mongoose.Schema({
   tasks: [
     {
       id: String,
-      started: Date
+      started: Date,
+      completed: Date,
+      result: String
     }
   ],
   terminated: {
@@ -307,6 +309,32 @@ db.once('open', function() {
                 console.log(model);
               }
             });
+          } else if (event.message.match(/Command finished successfully/i) || event.message.match(/Task not successful/i)) {
+            Minion.update(
+              {
+                _id: id,
+                tasks: {
+                  $elemMatch: {
+                    completed: { $exists: false },
+                    result: { $exists: false }
+                  }
+                }
+              },
+              {
+                $set: {
+                  "tasks.$.completed" : new Date(event.received_at),
+                  "tasks.$.result" : event.message.match(/Command finished successfully/i) ? 'Success' : 'Failure'
+                }
+              },
+              function(error, model) {
+                console.log(fqdn[0] + ', task: resolve');
+                if (error) {
+                  return console.error(error);
+                } else {
+                  console.log(model);
+                }
+              }
+            );
           }
           break;
         case 'user32':
@@ -399,34 +427,37 @@ db.once('open', function() {
           }
           break;
         case 'app/web.1':
-          var instanceId = event.message.match(/id=(i-[0-9a-f]{17})/i)[1];
-          id = mongoose.Types.ObjectId('0000000' + instanceId.slice(2));
-          var region = event.message.match(/region=([^,]*)/i)[1];
-          var instance = (event.message.match(/state=running/i)) ? {
-            'spotRequest.id': event.message.match(/srid=(sir-[^\)]*)/i)[1],
-            'spotRequest.fulfilled': new Date(event.received_at),
-            instanceId: instanceId,
-            workerType: event.message.match(/workerType=([^,]*)/i)[1],
-            dataCenter: region.slice(0, 2) + region.slice(3, 4) + region.slice(-1),
-            instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
-            lastEvent: new Date()
-          } : {
-            'spotRequest.id': event.message.match(/srid=(sir-[^\)]*)/i)[1],
-            'spotRequest.created': new Date(event.received_at),
-            instanceId: instanceId,
-            workerType: event.message.match(/workerType=([^,]*)/i)[1],
-            dataCenter: region.slice(0, 2) + region.slice(3, 4) + region.slice(-1),
-            instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
-            lastEvent: new Date()
-          };
-          Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
-            console.log('update: ' + instance._id);
-            if (error) {
-              return console.error(error);
-            } else {
-              console.log(model);
-            }
-          });
+          var workerType = event.message.match(/workerType=([^,]*)/i)[1];
+          if (workerType.includes('-win')) {
+            var instanceId = event.message.match(/id=(i-[0-9a-f]{17})/i)[1];
+            id = mongoose.Types.ObjectId('0000000' + instanceId.slice(2));
+            var region = event.message.match(/region=([^,]*)/i)[1];
+            var instance = (event.message.match(/state=running/i)) ? {
+              'spotRequest.id': event.message.match(/srid=(sir-[^\)]*)/i)[1],
+              'spotRequest.fulfilled': new Date(event.received_at),
+              instanceId: instanceId,
+              workerType: workerType,
+              dataCenter: region.slice(0, 2) + region.slice(3, 4) + region.slice(-1),
+              instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
+              lastEvent: new Date()
+            } : {
+              'spotRequest.id': event.message.match(/srid=(sir-[^\)]*)/i)[1],
+              'spotRequest.created': new Date(event.received_at),
+              instanceId: instanceId,
+              workerType: workerType,
+              dataCenter: region.slice(0, 2) + region.slice(3, 4) + region.slice(-1),
+              instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
+              lastEvent: new Date()
+            };
+            Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
+              console.log('update: ' + instance._id);
+              if (error) {
+                return console.error(error);
+              } else {
+                console.log(model);
+              }
+            });
+          }
           break;
       }
     });
