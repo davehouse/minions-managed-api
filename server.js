@@ -291,7 +291,7 @@ db.once('open', function() {
   router.post('/events', function(request, response) {
     JSON.parse(request.body.payload).events.forEach(function(event) {
       var fqdn = event.hostname.split('.');
-      var id = mongoose.Types.ObjectId('0000000' + fqdn[0].slice(2));
+      var id = (event.hostname === 'ec2-manager') ? {} : mongoose.Types.ObjectId('0000000' + fqdn[0].slice(2));
       switch (event.program.toLowerCase()) {
         case 'generic-worker':
           if (event.message.match(/Running task https/i)) {
@@ -399,7 +399,7 @@ db.once('open', function() {
           }
           break;
         case 'app/web.1':
-          var instanceId = event.message.match(/id=(i-[0-9a-f]*)/i)[1];
+          var instanceId = event.message.match(/id=(i-[0-9a-f]{17})/i)[1];
           id = mongoose.Types.ObjectId('0000000' + instanceId.slice(2));
           var spotRequest = (event.message.match(/state=running/i)) ? {
             id: event.message.match(/srid=(sir-[^\)]*)/i)[1],
