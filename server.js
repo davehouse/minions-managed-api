@@ -401,15 +401,16 @@ db.once('open', function() {
         case 'app/web.1':
           var instanceId = event.message.match(/id=(i-[0-9a-f]{17})/i)[1];
           id = mongoose.Types.ObjectId('0000000' + instanceId.slice(2));
-          var spotRequest = (event.message.match(/state=running/i)) ? {
-            id: event.message.match(/srid=(sir-[^\)]*)/i)[1],
-            fulfilled: new Date(event.received_at)
+          var instance = (event.message.match(/state=running/i)) ? {
+            'spotRequest.id': event.message.match(/srid=(sir-[^\)]*)/i)[1],
+            'spotRequest.fulfilled': new Date(event.received_at),
+            instanceId: instanceId,
+            workerType: event.message.match(/workerType=([^,]*)/i)[1],
+            instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
+            lastEvent: new Date()
           } : {
-            id: event.message.match(/srid=(sir-[^\)]*)/i)[1],
-            created: new Date(event.received_at)
-          };
-          var instance = {
-            spotRequest: spotRequest,
+            'spotRequest.id': event.message.match(/srid=(sir-[^\)]*)/i)[1],
+            'spotRequest.created': new Date(event.received_at),
             instanceId: instanceId,
             workerType: event.message.match(/workerType=([^,]*)/i)[1],
             instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
