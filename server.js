@@ -399,20 +399,20 @@ db.once('open', function() {
           }
           break;
         case 'app/web.1':
-          var instanceId = event.message.match(/id=(.*),/i)[1];
+          var instanceId = event.message.match(/id=(i-[0-9a-f]*)/i)[1];
           id = mongoose.Types.ObjectId('0000000' + instanceId.slice(2));
           var spotRequest = (event.message.match(/state=running/i)) ? {
-            id: event.message.match(/srid=(.*)\)/i)[1],
+            id: event.message.match(/srid=(sir-[^\)]*)/i)[1],
             fulfilled: new Date(event.received_at)
           } : {
-            id: event.message.match(/srid=(.*)\)/i)[1],
+            id: event.message.match(/srid=(sir-[^\)]*)/i)[1],
             created: new Date(event.received_at)
           };
           var instance = {
             spotRequest: spotRequest,
             instanceId: instanceId,
-            workerType: event.message.match(/workerType=(.*),/i)[1],
-            instanceType: event.message.match(/instanceType=(.*),/i)[1],
+            workerType: event.message.match(/workerType=([^,]*)/i)[1],
+            instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
             lastEvent: new Date()
           };
           Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
