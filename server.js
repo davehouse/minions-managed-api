@@ -290,6 +290,38 @@ db.once('open', function() {
       response.json(minion);
     });
   });
+  router.get('/minions/:state/:workerType/:dataCenter/:limit', function(request, response){
+    var missingAssumedDead = new Date();
+    missingAssumedDead.setHours(missingAssumedDead.getHours() - maxQuietHoursBeforeAssumedDead);
+    var sortAndLimit = (request.params.state === 'alive') ? {
+      sort: '-lastEvent',
+      limit: limit || 9999
+    } : {
+      sort: '-lastEvent',
+      limit: limit || 100
+    };
+    var match = (request.params.state === 'dead') ? {
+      $or: [ { terminated: { $exists: true } }, { lastEvent: { $lt: missingAssumedDead } } ],
+      workerType: request.params.workerType,
+      dataCenter: request.params.dataCenter
+    } : {
+      terminated: { $exists: false },
+      lastEvent: { $gt: missingAssumedDead },
+      workerType: request.params.workerType,
+      dataCenter: request.params.dataCenter
+    };
+    Minion.find(
+      match,
+      null,
+      sortAndLimit,
+      function(error, minions) {
+        if (error) {
+          return console.error(error);
+        }
+        response.json(minions);
+      }
+    );
+  });
   router.post('/events', function(request, response) {
     JSON.parse(request.body.payload).events.forEach(function(event) {
       var fqdn = event.hostname.split('.');
