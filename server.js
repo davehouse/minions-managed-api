@@ -295,10 +295,10 @@ db.once('open', function() {
     missingAssumedDead.setHours(missingAssumedDead.getHours() - maxQuietHoursBeforeAssumedDead);
     var sortAndLimit = (request.params.state === 'alive') ? {
       sort: '-lastEvent',
-      limit: request.params.limit
+      limit: (parseInt(request.params.limit) || 10)
     } : {
       sort: '-lastEvent',
-      limit: request.params.limit
+      limit: (parseInt(request.params.limit) || 10)
     };
     var match = (request.params.state === 'dead') ? {
       $or: [ { terminated: { $exists: true } }, { lastEvent: { $lt: missingAssumedDead } } ],
