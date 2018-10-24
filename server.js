@@ -13,6 +13,12 @@ var maxEventAgeInDays = {
 };
 var maxQuietHoursBeforeAssumedDead = 3;
 
+function pad(n, width, z) {
+  z = z || '0';
+  n = n + '';
+  return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+}
+
 app.use(function(request, response, next) {
   if(request.headers['x-forwarded-proto']==='http') {
     return response.redirect(['https://', request.get('Host'), request.url].join(''));
@@ -325,7 +331,20 @@ db.once('open', function() {
   router.post('/events', function(request, response) {
     JSON.parse(request.body.payload).events.forEach(function(event) {
       var fqdn = event.hostname.split('.');
-      var id = (fqdn[0].startsWith('i-')) ? mongoose.Types.ObjectId('0000000' + fqdn[0].slice(2)) : {};
+      var hostname = fqdn[0].toLowerCase();
+      var workerType = (hostname.startsWith('i-'))
+        ? fqdn[1]
+        : (hostname.startsWith('t-w1064-ms-'))
+          ? 'gecko-t-win10-64-hw'
+          : hostname.slice(0, -4);
+      var dataCenter = (hostname.startsWith('t-'))
+        ? fqdn[1]
+        : fqdn[2];
+      var id = (hostname.startsWith('i-'))
+        ? mongoose.Types.ObjectId(pad(hostname.slice(2), 24))
+        : (hostname.startsWith('t-'))
+          ? mongoose.Types.ObjectId(pad(hostname.slice(-3), 24))
+          : {};
       switch (event.program.toLowerCase()) {
         case 'generic-worker':
           if (event.message.match(/Running task https/i)) {
@@ -333,8 +352,8 @@ db.once('open', function() {
               id: event.message.split('#')[1],
               started: new Date(event.received_at)
             }
-            Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $push: { tasks: task } }, { upsert: true }, function(error, model) {
-              console.log(fqdn[0] + ', task: ' + task.id);
+            Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $push: { tasks: task } }, { upsert: true }, function(error, model) {
+              console.log(hostname + ', task: ' + task.id);
               if (error) {
                 return console.error(error);
               } else {
@@ -359,7 +378,7 @@ db.once('open', function() {
                 }
               },
               function(error, model) {
-                console.log(fqdn[0] + ', task: resolve');
+                console.log(hostname + ', task: resolve');
                 if (error) {
                   return console.error(error);
                 } else {
@@ -376,8 +395,8 @@ db.once('open', function() {
               user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
               comment: event.message.split('   Comment: ')[1]
             }
-            Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
-              console.log(fqdn[0] + ', terminated: ' + shutdown.comment);
+            Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
+              console.log(hostname + ', terminated: ' + shutdown.comment);
               if (error) {
                 return console.error(error);
               } else {
@@ -390,8 +409,8 @@ db.once('open', function() {
               user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
               comment: event.message.split('   Comment: ')[1]
             }
-            Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
-              console.log(fqdn[0] + ', restarted: ' + shutdown.comment);
+            Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
+              console.log(hostname + ', restarted: ' + shutdown.comment);
               if (error) {
                 return console.error(error);
               } else {
@@ -407,8 +426,8 @@ db.once('open', function() {
               user: 'amazon',
               comment: 'termination notice received'
             }
-            Minion.findOneAndUpdate({ _id: id }, { instanceId: fqdn[0], workerType: fqdn[1], dataCenter: fqdn[2], ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
-              console.log(fqdn[0] + ', terminated: ' + shutdown.comment);
+            Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
+              console.log(hostname + ', terminated: ' + shutdown.comment);
               if (error) {
                 return console.error(error);
               } else {
@@ -420,9 +439,9 @@ db.once('open', function() {
         case 'opencloudconfig':
           if (event.message.match(/instanceType/i)) {
             var instance = {
-              instanceId: fqdn[0],
-              workerType: fqdn[1],
-              dataCenter: fqdn[2],
+              instanceId: hostname,
+              workerType: workerType,
+              dataCenter: dataCenter,
               ipAddress: event.source_ip,
               instanceType: event.message.match(/instanceType: (.*)\./i)[1],
               lastEvent: new Date()
@@ -442,8 +461,8 @@ db.once('open', function() {
             id = mongoose.Types.ObjectId('0000000' + instanceId.slice(2));
             var instance = {
               instanceId: instanceId,
-              workerType: fqdn[1],
-              dataCenter: fqdn[2],
+              workerType: workerType,
+              dataCenter: dataCenter,
               ipAddress: event.source_ip,
               created: new Date(event.received_at),
               lastEvent: new Date()
