@@ -330,20 +330,46 @@ db.once('open', function() {
   });
   router.post('/events', function(request, response) {
     JSON.parse(request.body.payload).events.forEach(function(event) {
+      var workerTypeMap = {
+        'gecko-t-win10-64-hw': {
+          code: '00',
+          name: 't-w1064-ms-'
+        },
+        'gecko-t-win7-32-hw': {
+          code: '01',
+          name: 't-w732-ms-'
+        },
+        'gecko-t-osx-1010': {
+          code: '02',
+          name: 't-yosemite-r7-'
+        },
+        'gecko-t-linux-talos': {
+          code: '03',
+          name: 't-linux64-ms-'
+        }
+      };
       var fqdn = event.hostname.split('.');
       var hostname = fqdn[0].toLowerCase();
       var workerType = (hostname.startsWith('i-'))
         ? fqdn[1]
         : (hostname.startsWith('t-w1064-ms-'))
           ? 'gecko-t-win10-64-hw'
-          : hostname.slice(0, -4);
-      var dataCenter = (hostname.startsWith('t-'))
-        ? fqdn[1]
-        : fqdn[2];
+          : (hostname.startsWith('t-w732-ms-'))
+            ? 'gecko-t-win7-32-hw'
+            : (hostname.startsWith('t-yosemite-r7-'))
+              ? 'gecko-t-osx-1010'
+              : (hostname.startsWith('t-linux64-ms-'))
+                ? 'gecko-t-linux-talos'
+                : hostname.slice(0, -4);
+      var dataCenter = (hostname.startsWith('i-'))
+        ? fqdn[2] // ec2 win
+        : (hostname.startsWith('t-w'))
+          ? fqdn[1] // win7 & win10
+          : fqdn[3]; // yosemite & linux
       var id = (hostname.startsWith('i-'))
         ? mongoose.Types.ObjectId(pad(hostname.slice(2), 24))
         : (hostname.startsWith('t-'))
-          ? mongoose.Types.ObjectId(pad(hostname.slice(-3), 24))
+          ? mongoose.Types.ObjectId(pad(workerTypeMap[workerType].code + '00' + hostname.slice(-3), 24))
           : {};
       switch (event.program.toLowerCase()) {
         case 'generic-worker':
@@ -360,7 +386,7 @@ db.once('open', function() {
                 console.log(model);
               }
             });
-          } else if (event.message.match(/Command finished successfully/i) || event.message.match(/Task not successful/i)) {
+          } else if (event.message.match(/finished successfully/i) || event.message.match(/ERROR(s) encountered/i)) {
             Minion.update(
               {
                 _id: id,
@@ -374,7 +400,7 @@ db.once('open', function() {
               {
                 $set: {
                   "tasks.$.completed" : new Date(event.received_at),
-                  "tasks.$.result" : event.message.match(/Command finished successfully/i) ? 'Success' : 'Failure'
+                  "tasks.$.result" : event.message.match(/finished successfully/i) ? 'Success' : 'Failure'
                 }
               },
               function(error, model) {
@@ -408,6 +434,23 @@ db.once('open', function() {
               time: new Date(event.received_at),
               user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
               comment: event.message.split('   Comment: ')[1]
+            }
+            Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
+              console.log(hostname + ', restarted: ' + shutdown.comment);
+              if (error) {
+                return console.error(error);
+              } else {
+                console.log(model);
+              }
+            });
+          }
+          break;
+        case 'sudo':
+          if (event.message.match(/reboot/i)) {
+            var shutdown = {
+              time: new Date(event.received_at),
+              user: 'cltbld', // todo: parse the username out of the message
+              comment: event.message.trim()
             }
             Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
               console.log(hostname + ', restarted: ' + shutdown.comment);
