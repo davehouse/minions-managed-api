@@ -390,12 +390,7 @@ db.once('open', function() {
             Minion.update(
               {
                 _id: id,
-                tasks: {
-                  $elemMatch: {
-                    completed: { $exists: false },
-                    result: { $exists: false }
-                  }
-                }
+                tasks: { $slice: -1 }
               },
               {
                 $set: {
