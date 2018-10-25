@@ -452,7 +452,7 @@ db.once('open', function() {
             var shutdown = {
               time: new Date(event.received_at),
               user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
-              comment: event.message.split('   Comment: ')[1]
+              comment: event.message.split('   Comment: ')[1] || ''
             }
             Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
               console.log(workerType + ' ' + hostname + ' - restarted: ' + shutdown.comment);
@@ -522,7 +522,7 @@ db.once('open', function() {
               lastEvent: new Date()
             };
             Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
-              console.log(workerType + ' ' + instanceId + ', create: ' + instance._id);
+              console.log(workerType + ' ' + instanceId + ', create: ' + id);
               if (error) {
                 return console.error(error);
               }
