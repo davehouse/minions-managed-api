@@ -399,11 +399,9 @@ db.once('open', function() {
                 }
               },
               function(error, model) {
-                console.log(hostname + ', task: resolve');
+                console.log(workerType + ' ' + hostname + ', task: resolve');
                 if (error) {
                   return console.error(error);
-                } else {
-                  console.log(model);
                 }
               }
             );
@@ -417,11 +415,9 @@ db.once('open', function() {
               comment: event.message.split('   Comment: ')[1]
             }
             Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
-              console.log(hostname + ', terminated: ' + shutdown.comment);
+              console.log(workerType + ' ' + hostname + ', terminated: ' + shutdown.comment);
               if (error) {
                 return console.error(error);
-              } else {
-                console.log(model);
               }
             });
           } else if (event.message.match(/has initiated the restart of computer/i)) {
@@ -431,11 +427,9 @@ db.once('open', function() {
               comment: event.message.split('   Comment: ')[1]
             }
             Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
-              console.log(hostname + ', restarted: ' + shutdown.comment);
+              console.log(workerType + ' ' + hostname + ', restarted: ' + shutdown.comment);
               if (error) {
                 return console.error(error);
-              } else {
-                console.log(model);
               }
             });
           }
@@ -448,11 +442,9 @@ db.once('open', function() {
               comment: event.message.trim()
             }
             Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
-              console.log(hostname + ', restarted: ' + shutdown.comment);
+              console.log(workerType + ' ' + hostname + ', restarted: ' + shutdown.comment);
               if (error) {
                 return console.error(error);
-              } else {
-                console.log(model);
               }
             });
           }
@@ -465,11 +457,9 @@ db.once('open', function() {
               comment: 'termination notice received'
             }
             Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
-              console.log(hostname + ', terminated: ' + shutdown.comment);
+              console.log(workerType + ' ' + hostname + ', terminated: ' + shutdown.comment);
               if (error) {
                 return console.error(error);
-              } else {
-                console.log(model);
               }
             });
           }
@@ -485,18 +475,16 @@ db.once('open', function() {
               lastEvent: new Date()
             };
             Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
-              console.log('update: ' + instance._id);
+              console.log(workerType + ' ' + hostname + ', update instance id: ' + instance._id);
               if (error) {
                 return console.error(error);
-              } else {
-                console.log(model);
               }
             });
           } else if (event.message.match(/host renamed from/i)) {
             // at the time this message is created, the host still has its parents name.
             // the correct name is extracted from the message
             var instanceId = event.message.split(' to ')[1].trim().slice(0, -1);
-            id = mongoose.Types.ObjectId('0000000' + instanceId.slice(2));
+            id = mongoose.Types.ObjectId(pad(instanceId.slice(2), 24));
             var instance = {
               instanceId: instanceId,
               workerType: workerType,
@@ -506,11 +494,9 @@ db.once('open', function() {
               lastEvent: new Date()
             };
             Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
-              console.log('create: ' + instance._id);
+              console.log(workerType + ' ' + instanceId + ', create: ' + instance._id);
               if (error) {
                 return console.error(error);
-              } else {
-                console.log(model);
               }
             });
           }
@@ -539,11 +525,9 @@ db.once('open', function() {
               lastEvent: new Date()
             };
             Minion.findOneAndUpdate({ _id: id }, instance, { upsert: true }, function(error, model) {
-              console.log('update: ' + instance._id);
+              console.log(workerType + ' ' + instanceId + ', update: ' + instance._id);
               if (error) {
                 return console.error(error);
-              } else {
-                console.log(model);
               }
             });
           }
