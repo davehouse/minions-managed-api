@@ -379,11 +379,9 @@ db.once('open', function() {
               started: new Date(event.received_at)
             }
             Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $push: { tasks: task } }, { upsert: true }, function(error, model) {
-              console.log(hostname + ', task: ' + task.id);
+              console.log(workerType + ' ' + hostname + ', task: ' + task.id);
               if (error) {
                 return console.error(error);
-              } else {
-                console.log(model);
               }
             });
           } else if (event.message.match(/finished successfully/i) || event.message.match(/ERROR(s) encountered/i)) {
