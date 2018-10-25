@@ -385,7 +385,7 @@ db.once('open', function() {
               }
             });
           } else if (event.message.match(/finished successfully/i)) {
-            var taskId = event.message.match(/Task (^\\s*) finished successfully/i)[1];
+            var taskId = event.message.match(/Task (.*) finished successfully/i)[1];
             Minion.update(
               {
                 _id: id,
