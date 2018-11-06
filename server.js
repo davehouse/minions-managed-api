@@ -1,15 +1,16 @@
-var port       = 3000;
-var cors       = require('cors');
-var express    = require('express');
-var mongoose   = require('mongoose');
-var app        = express();
-var bodyParser = require('body-parser');
-var router     = express.Router();
+const port       = 3000;
+const express    = require('express');
+const cors       = require('cors');
+const mongoose   = require('mongoose');
+const bodyParser = require('body-parser');
+
+var app          = express();
+var router       = express.Router();
 
 var maxEventAgeInDays = {
   alive: 7,
   dead: 1,
-  stats: 7
+  stats: 14
 };
 var maxQuietHoursBeforeAssumedDead = 3;
 
@@ -41,7 +42,11 @@ var MinionSchema = new mongoose.Schema({
   ipAddress: String,
   instanceType: String,
   created: Date,
-  lastEvent: Date,
+  lastEvent: {
+    type: Date,
+    expires: (60 * 60 * 24 * maxEventAgeInDays.stats),
+    default: Date.now
+  },
   restarts: [
     {
       time: Date,
@@ -63,6 +68,7 @@ var MinionSchema = new mongoose.Schema({
     comment: String
   }
 });
+// MinionSchema.index({ lastEvent: 1 }, { expireAfterSeconds: (60 * 60 * 24 * 30) });
 var Minion = mongoose.model(
   'minion',
   MinionSchema
