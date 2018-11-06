@@ -2,4 +2,4 @@
 
 git pull
 npm install
-forever restart all
+forever restartall
