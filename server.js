@@ -414,7 +414,7 @@ db.once('open', function() {
                 }
               }
             );
-          } else if (event.message.match(/ERROR(s) encountered/i)) {
+          } else if (event.message.match(/ERROR\(s\) encountered/i)) {
             var taskResult = event.message.match(/(ERROR\(s\) encountered: .*)/)[1];
             Minion.update(
               {
