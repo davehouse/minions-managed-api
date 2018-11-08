@@ -63,6 +63,13 @@ var MinionSchema = new mongoose.Schema({
       result: String
     }
   ],
+  jobs: [
+    {
+      name: String,
+      started: Date,
+      completed: Date
+    }
+  ],
   terminated: {
     time: Date,
     user: String,
@@ -393,7 +400,7 @@ db.once('open', function() {
             var task = {
               id: event.message.split('#')[1].split('/')[0],
               started: new Date(event.received_at)
-            }
+            };
             Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $push: { tasks: task } }, { upsert: true }, function(error, model) {
               console.log(workerType + ' ' + hostname + ' - task started: ' + task.id);
               if (error) {
@@ -568,6 +575,42 @@ db.once('open', function() {
                 return console.error(error);
               }
             });
+          } else if (event.message.match(/[-_a-z0-9] :: begin - /i)) {
+            var matchItems = event.message.match(/([-_a-z0-9]) :: begin - (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3,7}Z)/i);
+            var job = {
+              name: event.program + '/' + matchItems[1],
+              started: new Date(matchItems[2])
+            };
+            Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $push: { jobs: job } }, { upsert: true }, function(error, model) {
+              console.log(workerType + ' ' + hostname + ' - job started: ' + job.name + ' ' + new Date(matchItems[2]));
+              if (error) {
+                return console.error(error);
+              }
+            });
+          } else if (event.message.match(/[-_a-z0-9] :: end - /i)) {
+            var matchItems = event.message.match(/([-_a-z0-9]) :: end - (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3,7}Z)/i);
+            Minion.update(
+              {
+                _id: id,
+                jobs: {
+                  $elemMatch: {
+                    name: event.program + '/' + matchItems[1]
+                    completed: { $exists: false }
+                  }
+                }
+              },
+              {
+                $set: {
+                  "jobs.$.completed" : new Date(matchItems[2])
+                }
+              },
+              function(error, model) {
+                console.log(workerType + ' ' + hostname + ' - job completed: ' + event.program + '/' + matchItems[1] + ' ' + new Date(matchItems[2]));
+                if (error) {
+                  return console.error(error);
+                }
+              }
+            );
           }
           break;
         case 'app/web.1':
