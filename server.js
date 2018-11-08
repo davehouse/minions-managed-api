@@ -352,7 +352,14 @@ db.once('open', function() {
         'gecko-t-linux-talos': {
           code: '03',
           name: 't-linux64-ms-'
+        },
+        'gecko-t-win10-64-ux': {
+          code: '04',
+          name: 't-w1064-ms-'
         }
+      };
+      var unmappedWorkerType = {
+        code: '09'
       };
       var fqdn = event.hostname.split('.');
       var hostname = fqdn[0].toLowerCase();
@@ -366,7 +373,9 @@ db.once('open', function() {
               ? 'gecko-t-osx-1010'
               : (hostname.startsWith('t-linux64-ms-'))
                 ? 'gecko-t-linux-talos'
-                : hostname.slice(0, -4);
+                : (hostname.startsWith('t-w1064-ux-'))
+                  ? 'gecko-t-win10-64-ux'
+                  : hostname.slice(0, -4);
       var dataCenter = (hostname.startsWith('i-'))
         ? fqdn[2] // ec2 win
         : (hostname.startsWith('t-w'))
@@ -375,7 +384,7 @@ db.once('open', function() {
       var id = (hostname.startsWith('i-'))
         ? mongoose.Types.ObjectId(pad(hostname.slice(2), 24))
         : (hostname.startsWith('t-'))
-          ? mongoose.Types.ObjectId(pad(workerTypeMap[workerType].code + '00' + hostname.slice(-3), 24))
+          ? mongoose.Types.ObjectId(pad((workerTypeMap[workerType] || unmappedWorkerType).code + '00' + hostname.slice(-3), 24))
           : {};
       switch (event.program.toLowerCase()) {
         case 'generic-worker':
