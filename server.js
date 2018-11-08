@@ -575,8 +575,8 @@ db.once('open', function() {
                 return console.error(error);
               }
             });
-          } else if (event.message.match(/[-_a-z0-9] :: begin - /i)) {
-            var matchItems = event.message.match(/([-_a-z0-9]) :: begin - (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3,7}Z)/i);
+          } else if (event.message.match(/[-_a-z0-9]* :: begin - /i)) {
+            var matchItems = event.message.match(/([-_a-z0-9]*) :: begin - (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3,7}Z)/i);
             var job = {
               name: event.program + '/' + matchItems[1],
               started: new Date(matchItems[2])
@@ -587,8 +587,8 @@ db.once('open', function() {
                 return console.error(error);
               }
             });
-          } else if (event.message.match(/[-_a-z0-9] :: end - /i)) {
-            var matchItems = event.message.match(/([-_a-z0-9]) :: end - (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3,7}Z)/i);
+          } else if (event.message.match(/[-_a-z0-9]* :: end - /i)) {
+            var matchItems = event.message.match(/([-_a-z0-9]*) :: end - (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3,7}Z)/i);
             Minion.update(
               {
                 _id: id,
