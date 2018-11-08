@@ -51,7 +51,8 @@ var MinionSchema = new mongoose.Schema({
     {
       time: Date,
       user: String,
-      comment: String
+      comment: String,
+      completed: Date
     }
   ],
   tasks: [
@@ -456,7 +457,7 @@ db.once('open', function() {
               time: new Date(event.received_at),
               user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
               comment: event.message.split('   Comment: ')[1]
-            }
+            };
             Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $set: { terminated: shutdown } }, { upsert: true }, function(error, model) {
               console.log(workerType + ' ' + hostname + ' - terminated: ' + shutdown.comment);
               if (error) {
@@ -468,13 +469,41 @@ db.once('open', function() {
               time: new Date(event.received_at),
               user: event.message.match(/on behalf of user (.*) for the following reason/i)[1],
               comment: event.message.split('   Comment: ')[1] || ''
-            }
+            };
             Minion.findOneAndUpdate({ _id: id }, { instanceId: hostname, workerType: workerType, dataCenter: dataCenter, ipAddress: event.source_ip, lastEvent: (new Date()), $push: { restarts: shutdown } }, { upsert: true }, function(error, model) {
-              console.log(workerType + ' ' + hostname + ' - restarted: ' + shutdown.comment);
+              console.log(workerType + ' ' + hostname + ' - restart triggered: ' + shutdown.comment);
               if (error) {
                 return console.error(error);
               }
             });
+          }
+          break;
+        case 'nxlog':
+          if (event.message.match(/INFO nxlog-ce-[\.0-9]* started/i)) {
+            Minion.update(
+              {
+                _id: id,
+                restarts: {
+                  /*
+                  $elemMatch: {
+                    completed: { $exists: false }
+                  }
+                  */
+                  $slice: -1
+                }
+              },
+              {
+                $set: {
+                  "restarts.$.completed" : new Date(event.received_at)
+                }
+              },
+              function(error, model) {
+                console.log(workerType + ' ' + hostname + ' - restart completed: ' + new Date(event.received_at));
+                if (error) {
+                  return console.error(error);
+                }
+              }
+            );
           }
           break;
         case 'sudo':
