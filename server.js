@@ -594,7 +594,7 @@ db.once('open', function() {
                 _id: id,
                 jobs: {
                   $elemMatch: {
-                    name: event.program + '/' + matchItems[1]
+                    name: event.program + '/' + matchItems[1],
                     completed: { $exists: false }
                   }
                 }
