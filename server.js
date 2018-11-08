@@ -484,12 +484,9 @@ db.once('open', function() {
               {
                 _id: id,
                 restarts: {
-                  /*
                   $elemMatch: {
                     completed: { $exists: false }
                   }
-                  */
-                  $slice: -1
                 }
               },
               {
