@@ -415,6 +415,7 @@ db.once('open', function() {
                   tasks: task
                 }
               },
+              { $setOnInsert: { created: new Date(event.received_at) } },
               { upsert: true },
               function(error, model) {
                 console.log(workerType + ' ' + hostname + ' - task started: ' + task.id);
@@ -583,6 +584,7 @@ db.once('open', function() {
                   restarts: shutdown
                 }
               },
+              { $setOnInsert: { created: new Date(event.received_at) } },
               {
                 upsert: true
               },
