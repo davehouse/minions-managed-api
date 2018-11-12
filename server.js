@@ -535,6 +535,33 @@ db.once('open', function() {
             );
           }
           break;
+        case 'DeployStudio':
+          if (event.message.match(/Running autostarted workflow:/)) {
+            var instance = {
+              instanceId: hostname,
+              workerType: workerType,
+              dataCenter: dataCenter,
+              ipAddress: event.source_ip,
+              created: new Date(event.received_at),
+              lastEvent: new Date()
+            };
+            Minion.findOneAndUpdate(
+              {
+                _id: id,
+              },
+              instance,
+              {
+                upsert: true
+              },
+              function(error, model) {
+                console.log(workerType + ' ' + hostname + ' - reimaged: ' + new Date(event.received_at));
+                if (error) {
+                  return console.error(error);
+                }
+              }
+            );
+          }
+          break;
         case 'nxlog':
           if (event.message.match(/INFO nxlog-ce-[\.0-9]* started/i)) {
             Minion.update(
