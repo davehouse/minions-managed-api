@@ -14,9 +14,6 @@ var maxEventAgeInDays = {
 };
 var maxQuietHoursBeforeAssumedDead = 3;
 
-var purgeDate = new Date();
-purgeDate.setDate(purgeDate.getDate() - maxEventAgeInDays.stats);
-
 function pad(n, width, z) {
   z = z || '0';
   n = n + '';
@@ -457,6 +454,8 @@ db.once('open', function() {
                 _id: id,
                 tasks: {
                   $elemMatch: {
+                    // match a task started in the last 3 hours
+                    started: { $gte: new Date((new Date()).getTime() - (3 * 60 * 60 * 1000)) },
                     completed: { $exists: false },
                     result: { $exists: false }
                   }
@@ -543,6 +542,8 @@ db.once('open', function() {
                 _id: id,
                 restarts: {
                   $elemMatch: {
+                    // match a restart triggered in the last 6 minutes
+                    time: { $gte: new Date((new Date()).getTime() - (6 * 60 * 1000)) },
                     completed: { $exists: false }
                   }
                 }
@@ -779,6 +780,7 @@ db.once('open', function() {
       }
     });
     // purge old tasks, jobs & restarts
+    var purgeDate = new Date((new Date()).getDate() - maxEventAgeInDays.stats);
     Minion.update(
       {},
       {
