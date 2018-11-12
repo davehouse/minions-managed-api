@@ -14,6 +14,9 @@ var maxEventAgeInDays = {
 };
 var maxQuietHoursBeforeAssumedDead = 3;
 
+var purgeDate = new Date();
+purgeDate.setDate(purgeDate.getDate() - maxEventAgeInDays.stats);
+
 function pad(n, width, z) {
   z = z || '0';
   n = n + '';
@@ -775,6 +778,38 @@ db.once('open', function() {
           break;
       }
     });
+    // purge old tasks, jobs & restarts
+    Minion.update(
+      {},
+      {
+        $pull: {
+          "tasks": {
+            started: {
+              $lte: purgeDate
+            }
+          },
+          "jobs": {
+            started: {
+              $lte: purgeDate
+            }
+          },
+          "restarts": {
+            time: {
+              $lte: purgeDate
+            }
+          }
+        }
+      },
+      {
+        multi: true
+      },
+      function(error, model) {
+        console.log(model);
+        if (error) {
+          return console.error(error);
+        }
+      }
+    );
   });
 });
 app.use(router);
