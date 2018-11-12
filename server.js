@@ -812,6 +812,19 @@ db.once('open', function() {
         }
       }
     );
+    Minion.remove(
+      {
+        lastEvent: {
+          $lte: purgeDate
+        }
+      },
+      function(error, model) {
+        console.log(model);
+        if (error) {
+          return console.error(error);
+        }
+      }
+    );
   });
 });
 app.use(router);
