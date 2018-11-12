@@ -10,7 +10,7 @@ var router       = express.Router();
 var maxEventAgeInDays = {
   alive: 7,
   dead: 1,
-  stats: 14
+  stats: 7
 };
 var maxQuietHoursBeforeAssumedDead = 3;
 
