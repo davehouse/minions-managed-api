@@ -618,6 +618,33 @@ db.once('open', function() {
             );
           }
           break;
+        case 'puppet-agent':
+          if (event.message.match("/Stage[main]/Users::Roller::Setup/Ssh::Userconfig[roller]/File[/home/roller/.ssh]/ensure")) {
+            var instance = {
+              instanceId: hostname,
+              workerType: workerType,
+              dataCenter: dataCenter,
+              ipAddress: event.source_ip,
+              created: new Date(event.received_at),
+              lastEvent: (new Date((new Date()).toISOString()))
+            };
+            Minion.findOneAndUpdate(
+              {
+                _id: id
+              },
+              instance,
+              {
+                upsert: true
+              },
+              function(error, model) {
+                console.log(workerType + ' ' + hostname + ' - reimaged');
+                if (error) {
+                  return console.error(error);
+                }
+              }
+            );
+          }
+          break;
         case 'sudo':
           if (event.message.match(/reboot/i)) {
             var shutdown = {
