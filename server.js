@@ -11,7 +11,7 @@ var maxEventAgeInDays = {
   alive: 7,
   dead: 1,
   stats: 7,
-  stats_hw: 3
+  stats_hw: 1
 };
 var maxQuietHoursBeforeAssumedDead = 3;
 
