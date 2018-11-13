@@ -435,6 +435,7 @@ db.once('open', function() {
                 }
               },
               {
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   "tasks.$.completed" : new Date(event.received_at),
                   "tasks.$.result" : 'Success'
@@ -462,6 +463,7 @@ db.once('open', function() {
                 }
               },
               {
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   "tasks.$.completed" : new Date(event.received_at),
                   "tasks.$.result" : taskResult
@@ -484,7 +486,9 @@ db.once('open', function() {
               comment: event.message.split('   Comment: ')[1]
             };
             Minion.findOneAndUpdate(
-              { _id: id },
+              {
+                _id: id
+              },
               {
                 instanceId: hostname,
                 workerType: workerType,
@@ -495,7 +499,9 @@ db.once('open', function() {
                   terminated: shutdown
                 }
               },
-              { upsert: true },
+              {
+                upsert: true
+              },
               function(error, model) {
                 console.log(workerType + ' ' + hostname + ' - terminated: ' + shutdown.comment);
                 if (error) {
@@ -551,6 +557,7 @@ db.once('open', function() {
                 }
               },
               {
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   "restarts.$.completed" : new Date(event.received_at)
                 }
@@ -726,6 +733,7 @@ db.once('open', function() {
                 }
               },
               {
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   "jobs.$.completed" : new Date(matchItems[2])
                 }
