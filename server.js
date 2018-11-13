@@ -826,7 +826,7 @@ db.once('open', function() {
         if (error) {
           return console.error(error);
         } else {
-          console.log(model.CommandResult.result);
+          console.log(model);
         }
       }
     );
@@ -877,7 +877,7 @@ db.once('open', function() {
           if (error) {
             return console.error(error);
           } else {
-            console.log(model.CommandResult.result);
+            console.log(model);
           }
         }
       );
