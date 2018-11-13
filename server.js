@@ -811,8 +811,9 @@ db.once('open', function() {
       function(error, model) {
         if (error) {
           return console.error(error);
+        } else {
+          console.log(model);
         }
-        console.log(model);
       }
     );
     Minion.remove(
@@ -824,8 +825,9 @@ db.once('open', function() {
       function(error, model) {
         if (error) {
           return console.error(error);
+        } else {
+          console.log(model.CommandResult.result);
         }
-        console.log(model.CommandResult.result);
       }
     );
     purgeDate = new Date((new Date()).getDate() - maxEventAgeInDays.stats_hw);
@@ -857,9 +859,10 @@ db.once('open', function() {
           multi: true
         },
         function(error, model) {
-          console.log(model);
           if (error) {
             return console.error(error);
+          } else {
+            console.log(model);
           }
         }
       );
@@ -873,8 +876,9 @@ db.once('open', function() {
         function(error, model) {
           if (error) {
             return console.error(error);
+          } else {
+            console.log(model.CommandResult.result);
           }
-          console.log(model.CommandResult.result);
         }
       );
     });
