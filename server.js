@@ -536,34 +536,9 @@ db.once('open', function() {
           }
           break;
         case 'nxlog':
-          if (event.message.match(/INFO nxlog-ce-[\.0-9]* started/i)) {
-            Minion.update(
-              {
-                _id: id,
-                restarts: {
-                  $elemMatch: {
-                    // match a restart triggered in the last 6 minutes
-                    time: { $gte: new Date((new Date()).getTime() - (6 * 60 * 1000)) },
-                    completed: { $exists: false }
-                  }
-                }
-              },
-              {
-                $set: {
-                  "restarts.$.completed" : new Date(event.received_at)
-                }
-              },
-              function(error, model) {
-                console.log(workerType + ' ' + hostname + ' - restart completed: ' + new Date(event.received_at));
-                if (error) {
-                  return console.error(error);
-                }
-              }
-            );
-          }
-          break;
         case 'cron':
-          if (event.message.match(/RELOAD/i)) {
+        case 'bird':
+          if (event.message.match(/INFO nxlog-ce-[\.0-9]* started/i) || event.message.match(/RELOAD/i) || event.message.match(/reachability/i)) {
             Minion.update(
               {
                 _id: id,
