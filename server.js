@@ -397,10 +397,6 @@ db.once('open', function() {
       switch (event.program.toLowerCase()) {
         case 'generic-worker':
           if (event.message.match(/No task claimed/i)) {
-            var task = {
-              id: event.message.split('#')[1].split('/')[0],
-              started: new Date(event.received_at)
-            };
             Minion.findOneAndUpdate(
               {
                 _id: id
@@ -410,7 +406,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date())
+                lastEvent: (new Date((new Date()).toISOString()))
               },
               { upsert: true },
               function(error, model) {
