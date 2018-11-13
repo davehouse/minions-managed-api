@@ -829,6 +829,80 @@ db.once('open', function() {
         }
       }
     );
+    ['mdc1', 'mdc2', 'mtv2'].forEach(function(dataCenter) {
+      Minion.update(
+        {
+          dataCenter: dataCenter
+        },
+        {
+          $pull: {
+            "tasks": {
+              started: {
+                $lte: (new Date((new Date()).getDate() - 2))
+              }
+            }
+          }
+        },
+        {
+          multi: true
+        },
+        function(error, model) {
+          if (error) {
+            return console.error(error);
+          } else {
+            console.log(model);
+          }
+        }
+      );
+      Minion.update(
+        {
+          dataCenter: dataCenter
+        },
+        {
+          $pull: {
+            "jobs": {
+              started: {
+                $lte: (new Date((new Date()).getDate() - 2))
+              }
+            }
+          }
+        },
+        {
+          multi: true
+        },
+        function(error, model) {
+          if (error) {
+            return console.error(error);
+          } else {
+            console.log(model);
+          }
+        }
+      );
+      Minion.update(
+        {
+          dataCenter: dataCenter
+        },
+        {
+          $pull: {
+            "restarts": {
+              time: {
+                $lte: (new Date((new Date()).getDate() - 2))
+              }
+            }
+          }
+        },
+        {
+          multi: true
+        },
+        function(error, model) {
+          if (error) {
+            return console.error(error);
+          } else {
+            console.log(model);
+          }
+        }
+      );
+    });
   });
 });
 app.use(router);
