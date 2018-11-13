@@ -408,6 +408,7 @@ db.once('open', function() {
                 ipAddress: event.source_ip,
                 lastEvent: (new Date((new Date()).toISOString()))
               },
+              { $setOnInsert: { created: new Date(event.received_at) } },
               { upsert: true },
               function(error, model) {
                 console.log(workerType + ' ' + hostname + ' - idle');
