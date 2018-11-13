@@ -562,6 +562,33 @@ db.once('open', function() {
             );
           }
           break;
+        case 'cron':
+          if (event.message.match(/RELOAD/i)) {
+            Minion.update(
+              {
+                _id: id,
+                restarts: {
+                  $elemMatch: {
+                    // match a restart triggered in the last 6 minutes
+                    time: { $gte: new Date((new Date()).getTime() - (6 * 60 * 1000)) },
+                    completed: { $exists: false }
+                  }
+                }
+              },
+              {
+                $set: {
+                  "restarts.$.completed" : new Date(event.received_at)
+                }
+              },
+              function(error, model) {
+                console.log(workerType + ' ' + hostname + ' - restart completed: ' + new Date(event.received_at));
+                if (error) {
+                  return console.error(error);
+                }
+              }
+            );
+          }
+          break;
         case 'sudo':
           if (event.message.match(/reboot/i)) {
             var shutdown = {
