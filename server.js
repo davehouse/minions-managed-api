@@ -579,7 +579,7 @@ db.once('open', function() {
               dataCenter: dataCenter,
               ipAddress: event.source_ip,
               created: new Date(event.received_at),
-              lastEvent: new Date()
+              lastEvent: (new Date((new Date()).toISOString()))
             };
             Minion.findOneAndUpdate(
               {
@@ -590,7 +590,7 @@ db.once('open', function() {
                 upsert: true
               },
               function(error, model) {
-                console.log(workerType + ' ' + hostname + ' - reimaged: ' + shutdown.comment);
+                console.log(workerType + ' ' + hostname + ' - reimaged');
                 if (error) {
                   return console.error(error);
                 }
