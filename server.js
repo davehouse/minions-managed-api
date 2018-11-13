@@ -549,7 +549,7 @@ db.once('open', function() {
               dataCenter: dataCenter,
               ipAddress: event.source_ip,
               created: new Date(event.received_at),
-              lastEvent: new Date()
+              lastEvent: (new Date((new Date()).toISOString()))
             };
             Minion.findOneAndUpdate(
               {
