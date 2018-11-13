@@ -410,7 +410,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $push: {
                   tasks: task
                 }
@@ -490,7 +490,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   terminated: shutdown
                 }
@@ -518,7 +518,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $push: {
                   restarts: shutdown
                 }
@@ -580,7 +580,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $push: {
                   restarts: shutdown
                 }
@@ -613,7 +613,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   terminated: shutdown
                 }
@@ -638,7 +638,7 @@ db.once('open', function() {
               dataCenter: dataCenter,
               ipAddress: event.source_ip,
               instanceType: event.message.match(/instanceType: (.*)\./i)[1],
-              lastEvent: new Date()
+              lastEvent: (new Date((new Date()).toISOString()))
             };
             Minion.findOneAndUpdate(
               {
@@ -666,7 +666,7 @@ db.once('open', function() {
               dataCenter: dataCenter,
               ipAddress: event.source_ip,
               created: new Date(event.received_at),
-              lastEvent: new Date()
+              lastEvent: (new Date((new Date()).toISOString()))
             };
             Minion.findOneAndUpdate(
               {
@@ -698,7 +698,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $push: {
                   jobs: job
                 }
@@ -752,7 +752,7 @@ db.once('open', function() {
               workerType: workerType,
               dataCenter: region.slice(0, 2) + region.slice(3, 4) + region.slice(-1),
               instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
-              lastEvent: new Date()
+              lastEvent: (new Date((new Date()).toISOString()))
             } : {
               'spotRequest.id': event.message.match(/srid=(sir-[^\)]*)/i)[1],
               'spotRequest.created': new Date(event.received_at),
@@ -760,7 +760,7 @@ db.once('open', function() {
               workerType: workerType,
               dataCenter: region.slice(0, 2) + region.slice(3, 4) + region.slice(-1),
               instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
-              lastEvent: new Date()
+              lastEvent: (new Date((new Date()).toISOString()))
             };
             Minion.findOneAndUpdate(
               {
