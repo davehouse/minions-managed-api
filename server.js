@@ -628,6 +628,36 @@ db.once('open', function() {
             );
           }
           break;
+        case 'loginwindow':
+          if (event.message.match(/ERROR.*/)) {
+            var taskResult = event.message.match(/(ERROR.*)/)[1];
+            Minion.update(
+              {
+                _id: id,
+                tasks: {
+                  $elemMatch: {
+                    // match an incomplete task started in the last 6 hours
+                    started: { $gte: new Date((new Date()).getTime() - (6 * 60 * 60 * 1000)) },
+                    completed: { $exists: false },
+                    result: { $exists: false }
+                  }
+                }
+              },
+              {
+                $set: {
+                  "tasks.$.completed" : new Date(event.received_at),
+                  "tasks.$.result" : taskResult
+                }
+              },
+              function(error, model) {
+                console.log(workerType + ' ' + hostname + ' - task crash: ' + taskResult);
+                if (error) {
+                  return console.error(error);
+                }
+              }
+            );
+          }
+          break;
         case 'opencloudconfig':
           if (event.message.match(/instanceType/i)) {
             var instance = {
