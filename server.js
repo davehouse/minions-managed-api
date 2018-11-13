@@ -10,7 +10,7 @@ var router       = express.Router();
 var maxEventAgeInDays = {
   alive: 7,
   dead: 1,
-  stats: 7
+  stats: 3
 };
 var maxQuietHoursBeforeAssumedDead = 3;
 
@@ -410,7 +410,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $push: {
                   tasks: task
                 }
@@ -435,6 +435,7 @@ db.once('open', function() {
                 }
               },
               {
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   "tasks.$.completed" : new Date(event.received_at),
                   "tasks.$.result" : 'Success'
@@ -462,6 +463,7 @@ db.once('open', function() {
                 }
               },
               {
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   "tasks.$.completed" : new Date(event.received_at),
                   "tasks.$.result" : taskResult
@@ -484,18 +486,22 @@ db.once('open', function() {
               comment: event.message.split('   Comment: ')[1]
             };
             Minion.findOneAndUpdate(
-              { _id: id },
+              {
+                _id: id
+              },
               {
                 instanceId: hostname,
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   terminated: shutdown
                 }
               },
-              { upsert: true },
+              {
+                upsert: true
+              },
               function(error, model) {
                 console.log(workerType + ' ' + hostname + ' - terminated: ' + shutdown.comment);
                 if (error) {
@@ -518,7 +524,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $push: {
                   restarts: shutdown
                 }
@@ -563,7 +569,9 @@ db.once('open', function() {
           }
           break;
         case 'nxlog':
-          if (event.message.match(/INFO nxlog-ce-[\.0-9]* started/i)) {
+        case 'cron':
+        case 'bird':
+          if (event.message.match(/INFO nxlog-ce-[\.0-9]* started/i) || event.message.match(/RELOAD/i) || event.message.match(/reachability/i)) {
             Minion.update(
               {
                 _id: id,
@@ -576,6 +584,7 @@ db.once('open', function() {
                 }
               },
               {
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   "restarts.$.completed" : new Date(event.received_at)
                 }
@@ -605,7 +614,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $push: {
                   restarts: shutdown
                 }
@@ -638,7 +647,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   terminated: shutdown
                 }
@@ -663,7 +672,7 @@ db.once('open', function() {
               dataCenter: dataCenter,
               ipAddress: event.source_ip,
               instanceType: event.message.match(/instanceType: (.*)\./i)[1],
-              lastEvent: new Date()
+              lastEvent: (new Date((new Date()).toISOString()))
             };
             Minion.findOneAndUpdate(
               {
@@ -691,7 +700,7 @@ db.once('open', function() {
               dataCenter: dataCenter,
               ipAddress: event.source_ip,
               created: new Date(event.received_at),
-              lastEvent: new Date()
+              lastEvent: (new Date((new Date()).toISOString()))
             };
             Minion.findOneAndUpdate(
               {
@@ -723,7 +732,7 @@ db.once('open', function() {
                 workerType: workerType,
                 dataCenter: dataCenter,
                 ipAddress: event.source_ip,
-                lastEvent: (new Date()),
+                lastEvent: (new Date((new Date()).toISOString())),
                 $push: {
                   jobs: job
                 }
@@ -751,6 +760,7 @@ db.once('open', function() {
                 }
               },
               {
+                lastEvent: (new Date((new Date()).toISOString())),
                 $set: {
                   "jobs.$.completed" : new Date(matchItems[2])
                 }
@@ -777,7 +787,7 @@ db.once('open', function() {
               workerType: workerType,
               dataCenter: region.slice(0, 2) + region.slice(3, 4) + region.slice(-1),
               instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
-              lastEvent: new Date()
+              lastEvent: (new Date((new Date()).toISOString()))
             } : {
               'spotRequest.id': event.message.match(/srid=(sir-[^\)]*)/i)[1],
               'spotRequest.created': new Date(event.received_at),
@@ -785,7 +795,7 @@ db.once('open', function() {
               workerType: workerType,
               dataCenter: region.slice(0, 2) + region.slice(3, 4) + region.slice(-1),
               instanceType: event.message.match(/instanceType=([^,]*)/i)[1],
-              lastEvent: new Date()
+              lastEvent: (new Date((new Date()).toISOString()))
             };
             Minion.findOneAndUpdate(
               {
@@ -833,9 +843,10 @@ db.once('open', function() {
         multi: true
       },
       function(error, model) {
-        console.log(model);
         if (error) {
           return console.error(error);
+        } else {
+          console.log(model);
         }
       }
     );
@@ -846,12 +857,87 @@ db.once('open', function() {
         }
       },
       function(error, model) {
-        console.log(model);
         if (error) {
           return console.error(error);
+        } else {
+          console.log(model);
         }
       }
     );
+    ['mdc1', 'mdc2', 'mtv2'].forEach(function(dataCenter) {
+      Minion.update(
+        {
+          dataCenter: dataCenter
+        },
+        {
+          $pull: {
+            "tasks": {
+              started: {
+                $lte: (new Date((new Date()).getDate() - 2))
+              }
+            }
+          }
+        },
+        {
+          multi: true
+        },
+        function(error, model) {
+          if (error) {
+            return console.error(error);
+          } else {
+            console.log(model);
+          }
+        }
+      );
+      Minion.update(
+        {
+          dataCenter: dataCenter
+        },
+        {
+          $pull: {
+            "jobs": {
+              started: {
+                $lte: (new Date((new Date()).getDate() - 2))
+              }
+            }
+          }
+        },
+        {
+          multi: true
+        },
+        function(error, model) {
+          if (error) {
+            return console.error(error);
+          } else {
+            console.log(model);
+          }
+        }
+      );
+      Minion.update(
+        {
+          dataCenter: dataCenter
+        },
+        {
+          $pull: {
+            "restarts": {
+              time: {
+                $lte: (new Date((new Date()).getDate() - 2))
+              }
+            }
+          }
+        },
+        {
+          multi: true
+        },
+        function(error, model) {
+          if (error) {
+            return console.error(error);
+          } else {
+            console.log(model);
+          }
+        }
+      );
+    });
   });
 });
 app.use(router);
