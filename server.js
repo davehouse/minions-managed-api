@@ -10,7 +10,8 @@ var router       = express.Router();
 var maxEventAgeInDays = {
   alive: 7,
   dead: 1,
-  stats: 7
+  stats: 7,
+  stats_hw: 3
 };
 var maxQuietHoursBeforeAssumedDead = 3;
 
@@ -808,10 +809,10 @@ db.once('open', function() {
         multi: true
       },
       function(error, model) {
-        console.log(model);
         if (error) {
           return console.error(error);
         }
+        console.log(model);
       }
     );
     Minion.remove(
@@ -821,12 +822,62 @@ db.once('open', function() {
         }
       },
       function(error, model) {
-        console.log(model);
         if (error) {
           return console.error(error);
         }
+        console.log(model.CommandResult.result);
       }
     );
+    purgeDate = new Date((new Date()).getDate() - maxEventAgeInDays.stats_hw);
+    ['mdc1', 'mdc2', 'mtv2'].forEach(function(dataCenter) {
+      Minion.update(
+        {
+          dataCenter: dataCenter
+        },
+        {
+          $pull: {
+            "tasks": {
+              started: {
+                $lte: purgeDate
+              }
+            },
+            "jobs": {
+              started: {
+                $lte: purgeDate
+              }
+            },
+            "restarts": {
+              time: {
+                $lte: purgeDate
+              }
+            }
+          }
+        },
+        {
+          multi: true
+        },
+        function(error, model) {
+          console.log(model);
+          if (error) {
+            return console.error(error);
+          }
+        }
+      );
+      Minion.remove(
+        {
+          dataCenter: dataCenter,
+          lastEvent: {
+            $lte: purgeDate
+          }
+        },
+        function(error, model) {
+          if (error) {
+            return console.error(error);
+          }
+          console.log(model.CommandResult.result);
+        }
+      );
+    });
   });
 });
 app.use(router);
