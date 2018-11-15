@@ -277,6 +277,50 @@ db.once('open', function() {
       }
     );
   });
+  router.get('/list/:workerType/:dataCenter?/:hours?', function(request, response){
+    var hours = 24;
+    var match = {
+      workerType: request.params.workerType
+    };
+
+    if (request.params.dataCenter !== undefined) {
+      match.dataCenter = request.params.dataCenter;
+    }
+
+    if (request.params.hours !== undefined) {
+      hours = request.params.hours;
+    }
+
+    var projection = {
+      'instanceId': true,
+      'taskCount': { $size: "$tasks" },
+      'tasks': {
+        $slice: [
+          { "$gt": new Date(Date.now() - hours * 60 * 60 * 1000) },
+          -5
+        ]
+      },
+      'restartCount': { $size: "$restarts" },
+      'restarts': {
+        $slice: [
+          { "$gt": new Date(Date.now() - hours * 60 * 60 * 1000) },
+          -5
+        ]
+      'created': true,
+      'lastEvent': true
+    };
+
+    Minion.find(
+      match,
+      projection,
+      function(error, minions) {
+        if (error) {
+          return console.error(error);
+        }
+        response.json(minions);
+      }
+    );
+  });
   router.get('/minions/:state/:workerType/:dataCenter', function(request, response){
     var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays[request.params.state]);return d;})(new Date())).toDateString());
     var missingAssumedDead = new Date();
