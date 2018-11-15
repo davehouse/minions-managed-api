@@ -290,16 +290,17 @@ db.once('open', function() {
     }
     var projection = {
       'instanceId': true,
-      'taskCount': { $size: "$tasks" },
-      'tasks': { $slice: -taskCount },
-      'restartCount': { $size: "$restarts" },
-      'restarts': { $slice: -taskCount },
+      'taskCount': { $size: { "$ifNull": [ "$tasks", [] ] } },
+      'tasks': { $slice: [ "$tasks", -taskCount ] },
+      'restartCount': { $size: { "$ifNull": [ "$restarts", [] ] } },
+      'restarts': { $slice: [ "$restarts", -taskCount ] },
       'created': true,
       'lastEvent': true
     };
-    Minion.find(
-      match,
-      projection,
+    Minion.aggregate([
+        { $match: match },
+        { $project: projection },
+      ],
       function(error, minions) {
         if (error) {
           return console.error(error);
