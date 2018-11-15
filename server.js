@@ -277,39 +277,26 @@ db.once('open', function() {
       }
     );
   });
-  router.get('/list/:workerType/:dataCenter?/:hours?', function(request, response){
-    var hours = 24;
+  router.get('/list/:workerType/:dataCenter?/:taskCount?', function(request, response){
+    var taskCount = 5;
     var match = {
       workerType: request.params.workerType
     };
-
     if (request.params.dataCenter !== undefined) {
       match.dataCenter = request.params.dataCenter;
     }
-
-    if (request.params.hours !== undefined) {
-      hours = request.params.hours;
+    if (request.params.taskCount !== undefined) {
+      taskCount = request.params.taskCount;
     }
-
     var projection = {
       'instanceId': true,
       'taskCount': { $size: "$tasks" },
-      'tasks': {
-        $slice: [
-          { "$gt": new Date(Date.now() - hours * 60 * 60 * 1000) },
-          -5
-        ]
-      },
+      'tasks': { $slice: -taskCount },
       'restartCount': { $size: "$restarts" },
-      'restarts': {
-        $slice: [
-          { "$gt": new Date(Date.now() - hours * 60 * 60 * 1000) },
-          -5
-        ]
+      'restarts': { $slice: -taskCount },
       'created': true,
       'lastEvent': true
     };
-
     Minion.find(
       match,
       projection,
