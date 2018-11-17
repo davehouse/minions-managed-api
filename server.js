@@ -92,7 +92,7 @@ app.use(bodyParser.urlencoded({
   type: 'application/x-www-form-urlencoded'
 }));
 
-mongoose.connect('localhost', 'minions-managed');
+mongoose.connect(process.env.MONGO || 'localhost', 'minions-managed');
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
@@ -277,29 +277,63 @@ db.once('open', function() {
       }
     );
   });
-  router.get('/list/:workerType/:dataCenter?/:taskCount?', function(request, response){
-    var taskCount = 5;
+  router.get('/list/:workerType/:dataCenter?/:hours?', function(request, response){
+    var hours = 5;
+    if (request.params.hours !== undefined) {
+      hours = request.params.hours;
+    }
+    //const now = new Date();
+    const now = new Date("2018-11-15T22:25:37.240Z");
+    now.setHours(now.getHours() - hours);
+
     var match = {
       workerType: request.params.workerType
     };
     if (request.params.dataCenter !== undefined) {
       match.dataCenter = request.params.dataCenter;
     }
-    if (request.params.taskCount !== undefined) {
-      taskCount = request.params.taskCount;
-    }
     var projection = {
       'instanceId': true,
       'taskCount': { $size: { "$ifNull": [ "$tasks", [] ] } },
-      'tasks': { $slice: [ "$tasks", -taskCount ] },
+      'tasks': { $reverseArray: { $ifNull: [
+        {
+          $filter: {
+            input: '$tasks',
+            as: 'task',
+            cond: {
+              $gte: [ '$$task.started', now ]
+            }
+          }
+        },
+        { $slice: [ '$tasks', -2 ] }
+      ] } },
       'restartCount': { $size: { "$ifNull": [ "$restarts", [] ] } },
-      'restarts': { $slice: [ "$restarts", -taskCount ] },
+      'restarts': { $reverseArray: { $ifNull: [
+        {
+          $filter: {
+            input: '$restart',
+            as: 'restart',
+            cond: {
+              $gte: [ '$$restart.time', now ]
+            }
+          }
+        },
+        { $slice: [ "$restarts", -2] }
+      ] } },
       'created': true,
       'lastEvent': true
     };
+    var group = {
+      'instanceId': "$instanceId",
+      'tasks': "$tasks",
+      'restarts': "$restarts",
+      'created': "$created",
+      'lastEvent': "$lastEvent"
+    };
     Minion.aggregate([
         { $match: match },
-        { $project: projection },
+        //{ $unwind: { path: '$tasks', preserveNullAndEmptyArrays: true } },
+        { $project: projection }
       ],
       function(error, minions) {
         if (error) {
