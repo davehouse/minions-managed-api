@@ -97,78 +97,115 @@ var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
   router.get('/minion/:workerType/:period/stats', function(request, response) {
+    const periods = ['minute','hour','day','month','year','dataCenter'];
+    const period = request.params.period;
+
     var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays.stats);return d;})(new Date())).toDateString());
-    var group = {};
-    switch (request.params.period) {
-      case 'year':
-        group = {
-          dataCenter: "$dataCenter",
-          year: { $year: "$created" }
+
+    switch (request.params.workerType) {
+      // Hardware worker counts based on activity
+      case 'gecko-t-win10-64-hw':
+      case 'gecko-t-win10-64-ux':
+      case 'gecko-t-linux-talos':
+      case 'gecko-t-linux-talos-b':
+      case 'gecko-t-osx-1010':
+      case 'gecko-t-osx-1010-beta':
+        var project = {
+          dataCenter: '$dataCenter',
+          instanceId: '$instanceId',
+          year: { $year: "$tasks.started" },
+          month: { $month: "$tasks.started" },
+          day: { $dayOfMonth: "$tasks.started" },
+          hour: { $hour: "$tasks.started" },
+          minute: { $minute: "$tasks.started" }
         };
-        break;
-      case 'month':
-        group = {
-          dataCenter: "$dataCenter",
-          year: { $year: "$created" },
-          month: { $month: "$created" }
+        var group = {
+          dataCenter: '$dataCenter',
+          year: '$year',
+          month: '$month',
+          day: '$day',
+          hour: '$hour'
         };
+        periods.slice(0,periods.indexOf(period))
+          .forEach(function(a, x) {
+            delete project[a];
+            delete group[a];
+          });
+
+        Minion.aggregate(
+          [
+            {
+              $match: {
+                workerType: request.params.workerType,
+                tasks: { $gte: ["$tasks.started", startDate] }
+              }
+            },
+            {
+              $unwind: "$tasks"
+            },
+            {
+              $project: project
+            },
+            {
+              $group: {
+                _id: group,
+                instances: { $addToSet: '$instanceId' }
+              }
+            },
+            {
+              $project: {
+                count: { $size: "$instances" }
+              }
+            }
+          ],
+          function(error, counts) {
+            if (error) {
+              return console.error(error);
+            }
+            response.json(counts);
+          }
+        );
         break;
-      case 'day':
-        group = {
-          dataCenter: "$dataCenter",
-          year: { $year: "$created" },
-          month: { $month: "$created" },
-          day: { $dayOfMonth: "$created" }
-        };
-        break;
-      case 'hour':
-        group = {
-          dataCenter: "$dataCenter",
-          year: { $year: "$created" },
-          month: { $month: "$created" },
-          day: { $dayOfMonth: "$created" },
-          hour: { $hour: "$created" }
-        };
-        break;
-      case 'minute':
-        group = {
-          dataCenter: "$dataCenter",
+
+      // Cloud instance counts based on created date
+      default:
+        var group = {
+          dataCenter: '$dataCenter',
           year: { $year: "$created" },
           month: { $month: "$created" },
           day: { $dayOfMonth: "$created" },
           hour: { $hour: "$created" },
           minute: { $minute: "$created" }
         };
-        break;
-      default:
-        group = {
-          dataCenter: "$dataCenter"
-        };
+        periods.slice(0,periods.indexOf(period))
+          .forEach(function(a, x) {
+            delete group[a];
+          });
+        Minion.aggregate(
+          [
+            {
+              $match: {
+                workerType: request.params.workerType,
+                created: { $type: "date" },
+                lastEvent: { $gt: startDate }
+              }
+            },
+            {
+              $group: {
+                _id: group,
+                count: { $sum: 1 }
+              }
+            }
+          ],
+          function(error, counts) {
+            if (error) {
+              return console.error(error);
+            }
+            response.json(counts);
+          }
+        );
         break;
     }
-    Minion.aggregate(
-      [
-        {
-          $match: {
-            workerType: request.params.workerType,
-            created: { $type: 9 },
-            lastEvent: { $gt: startDate }
-          }
-        },
-        {
-          $group: {
-            _id: group,
-            count: { $sum: 1 }
-          }
-        }
-      ],
-      function(error, counts) {
-        if (error) {
-          return console.error(error);
-        }
-        response.json(counts);
-      }
-    );
   });
   router.get('/minion/:period/stats', function(request, response) {
     var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays.stats);return d;})(new Date())).toDateString());
@@ -265,6 +302,53 @@ db.once('open', function() {
               workerType: "$workerType",
               dataCenter: "$dataCenter"
             },
+            count: { $sum: 1 }
+          }
+        }
+      ],
+      function(error, counts) {
+        if (error) {
+          return console.error(error);
+        }
+        response.json(counts);
+      }
+    );
+  });
+  router.get('/tasks/:workerType/:period/stats', function(request, response) {
+    var startDate = new Date(((function(d){d.setDate(d.getDate()-maxEventAgeInDays.stats);return d;})(new Date())).toDateString());
+    var project = {
+        year: { $year: "$tasks.started" },
+        month: { $month: "$tasks.started" },
+        dayOfMonth: { $dayOfMonth: "$tasks.started" },
+        hour: { $hour: "$tasks.started" },
+        minute: { $minute: "$tasks.started" }
+    };
+    // TODO: restore period grouping
+    var group = {
+        dataCenter: '$dataCenter',
+        year: '$year',
+        month: '$month',
+        dayOfMonth: '$dayOfMonth',
+        hour: '$hour'
+    };
+
+    Minion.aggregate(
+      [
+        {
+          $match: {
+            workerType: request.params.workerType,
+            tasks: { $gte: ["$tasks.started", startDate] }
+          }
+        },
+        {
+          $unwind: "$tasks"
+        },
+        {
+          $project: project
+        },
+        {
+          $group: {
+            _id: group,
             count: { $sum: 1 }
           }
         }
