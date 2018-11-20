@@ -358,8 +358,29 @@ db.once('open', function() {
       workerType: request.params.workerType,
       dataCenter: request.params.dataCenter
     };
-    Minion.find(
-      match,
+    var projection = {
+      'instanceId': true,
+      'taskCount': { $size: { "$ifNull": [ "$tasks", [] ] } },
+      'tasks': { $reverseArray:
+        { $slice: [ '$tasks', -2 ] }
+      },
+      'restartCount': { $size: { "$ifNull": [ "$restarts", [] ] } },
+      'restarts': { $reverseArray:
+        { $slice: [ "$restarts", -2] }
+      },
+      'created': true,
+      'lastEvent': true,
+      'jobs': true,
+      'terminated': true,
+      workerType: true,
+      ipAddress: true,
+      instanceType: true,
+      spotRequest: true
+    };
+    Minion.aggregate([
+        { $match: match },
+        { $project: projection }
+      ],
       function(error, minions) {
         if (error) {
           return console.error(error);
@@ -379,13 +400,7 @@ db.once('open', function() {
   router.get('/minions/:state/:workerType/:dataCenter/:limit', function(request, response){
     var missingAssumedDead = new Date();
     missingAssumedDead.setHours(missingAssumedDead.getHours() - maxQuietHoursBeforeAssumedDead);
-    var sortAndLimit = (request.params.state === 'alive') ? {
-      sort: '-lastEvent',
-      limit: (parseInt(request.params.limit) || 10)
-    } : {
-      sort: '-lastEvent',
-      limit: (parseInt(request.params.limit) || 10)
-    };
+    const limit = (parseInt(request.params.limit) || 10);
     var match = (request.params.state === 'dead') ? {
       $or: [ { terminated: { $exists: true } }, { lastEvent: { $lt: missingAssumedDead } } ],
       workerType: request.params.workerType,
@@ -396,10 +411,32 @@ db.once('open', function() {
       workerType: request.params.workerType,
       dataCenter: request.params.dataCenter
     };
-    Minion.find(
-      match,
-      null,
-      sortAndLimit,
+    var projection = {
+      'instanceId': true,
+      'taskCount': { $size: { "$ifNull": [ "$tasks", [] ] } },
+      'tasks': { $reverseArray:
+        { $slice: [ '$tasks', -2 ] }
+      },
+      'restartCount': { $size: { "$ifNull": [ "$restarts", [] ] } },
+      'restarts': { $reverseArray:
+        { $slice: [ "$restarts", -2] }
+      },
+      'created': true,
+      'lastEvent': true,
+      'jobs': true,
+      'terminated': true,
+      workerType: true,
+      dataCenter: true,
+      ipAddress: true,
+      instanceType: true,
+      spotRequest: true
+    };
+    Minion.aggregate([
+        { $match: match },
+        { $sort: { lastEvent: -1 } },
+        { $limit: limit },
+        { $project: projection }
+      ],
       function(error, minions) {
         if (error) {
           return console.error(error);
